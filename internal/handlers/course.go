@@ -89,3 +89,60 @@ func (h *CourseHandler) DeleteCourse(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Course deleted successfully"})
 }
+
+// Get Course Statistics (Admin only)
+func (h *CourseHandler) GetCourseStats(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+
+	var course models.Course
+	if err := database.DB.First(&course, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Course not found"})
+		return
+	}
+
+	// Count total unique students (by device_id and student_id)
+	var totalAttempts int64
+	var uniqueStudents int64
+	
+	database.DB.Model(&models.Attempt{}).Where("course_id = ?", id).Count(&totalAttempts)
+	
+	// Count unique students by device_id (for public quiz takers)
+	database.DB.Model(&models.Attempt{}).
+		Where("course_id = ? AND device_id != ''", id).
+		Distinct("device_id").
+		Count(&uniqueStudents)
+
+	// Get list of students with their attempts
+	type StudentAttempt struct {
+		StudentName  string `json:"student_name"`
+		DeviceID     string `json:"device_id"`
+		AttemptCount int    `json:"attempt_count"`
+		BestScore    int    `json:"best_score"`
+		TotalPoints  int    `json:"total_points"`
+		LastAttempt  string `json:"last_attempt"`
+	}
+
+	var studentAttempts []StudentAttempt
+	database.DB.Raw(`
+		SELECT 
+			u.name as student_name,
+			a.device_id,
+			COUNT(a.id) as attempt_count,
+			MAX(a.score) as best_score,
+			MAX(a.total_points) as total_points,
+			MAX(a.created_at) as last_attempt
+		FROM attempts a
+		JOIN users u ON a.student_id = u.id
+		WHERE a.course_id = ?
+		GROUP BY u.name, a.device_id
+		ORDER BY last_attempt DESC
+	`, id).Scan(&studentAttempts)
+
+	c.JSON(http.StatusOK, gin.H{
+		"course_id":        course.ID,
+		"course_title":     course.Title,
+		"total_attempts":   totalAttempts,
+		"unique_students":  uniqueStudents,
+		"student_attempts": studentAttempts,
+	})
+}

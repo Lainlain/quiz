@@ -337,6 +337,10 @@ function quizApp() {
                 if (response.ok) {
                     const data = await response.json();
                     console.log('Attempt saved successfully:', data);
+                } else if (response.status === 403) {
+                    // Retry limit reached
+                    const error = await response.json();
+                    alert(error.message || 'Maximum retry limit reached. You have already taken this quiz 3 times.');
                 } else {
                     const error = await response.json();
                     console.error('Failed to save attempt:', error);

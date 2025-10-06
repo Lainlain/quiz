@@ -277,6 +277,23 @@ func (h *StudentHandler) SubmitPublicQuiz(c *gin.Context) {
 		return
 	}
 
+	// Check retry limit (3 attempts max per device per quiz package)
+	if req.DeviceID != "" {
+		var attemptCount int64
+		database.DB.Model(&models.Attempt{}).Where(
+			"device_id = ? AND quiz_package_id = ? AND status = ?",
+			req.DeviceID, req.QuizPackageID, models.StatusCompleted,
+		).Count(&attemptCount)
+
+		if attemptCount >= 3 {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":   "Maximum retry limit reached",
+				"message": "You have already taken this quiz 3 times. No more attempts allowed.",
+			})
+			return
+		}
+	}
+
 	// Create or find a guest user for this student name
 	var guestUser models.User
 	email := "guest_" + strings.ToLower(strings.ReplaceAll(req.StudentName, " ", "_")) + "@guest.local"

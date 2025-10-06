@@ -81,6 +81,7 @@ func main() {
 		admin.POST("/courses", courseHandler.CreateCourse)
 		admin.PUT("/courses/:id", courseHandler.UpdateCourse)
 		admin.DELETE("/courses/:id", courseHandler.DeleteCourse)
+		admin.GET("/courses/:id/stats", courseHandler.GetCourseStats)
 
 		// Quiz package management
 		admin.POST("/quiz-packages", quizPackageHandler.CreateQuizPackage)
