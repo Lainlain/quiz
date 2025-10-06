@@ -93,6 +93,14 @@ function quizApp() {
         // Loading state
         isLoading: true,
         
+        // Modal state
+        modal: {
+            show: false,
+            type: 'info', // 'success', 'error', 'warning', 'info'
+            title: '',
+            message: ''
+        },
+        
         // Quiz state
         currentScreen: 'name', // 'name', 'quiz', 'results'
         questions: [],
@@ -115,6 +123,15 @@ function quizApp() {
             details: []
         },
         
+        // Modal helper functions
+        showModal(type, title, message) {
+            this.modal = { show: true, type, title, message };
+        },
+        
+        closeModal() {
+            this.modal.show = false;
+        },
+        
         // Initialize
         async init() {
             try {
@@ -127,7 +144,7 @@ function quizApp() {
                 this.quizPackageId = parseInt(urlParams.get('package'));
                 
                 if (!this.quizPackageId) {
-                    alert('Invalid quiz link');
+                    this.showModal('error', 'Invalid Link', 'This quiz link is invalid. Please check the URL.');
                     this.isLoading = false;
                     return;
                 }
@@ -143,7 +160,7 @@ function quizApp() {
             } catch (error) {
                 console.error('Initialization error:', error);
                 this.isLoading = false;
-                alert('Failed to load quiz. Please refresh the page.');
+                this.showModal('error', 'Loading Failed', 'Failed to load quiz. Please refresh the page and try again.');
             }
         },
         
@@ -154,7 +171,7 @@ function quizApp() {
                 const data = await response.json();
                 
                 if (data.already_taken) {
-                    alert('You have already taken this quiz from this device. Each student can only take the quiz once per device.');
+                    this.showModal('warning', 'Already Taken', 'You have already taken this quiz from this device. Each student can only take the quiz once per device.');
                     this.currentScreen = 'blocked';
                 } else if (data.student_name) {
                     // Auto-fill student name from previous quiz on this device
@@ -223,7 +240,7 @@ function quizApp() {
                 console.log('Quiz data loaded successfully');
             } catch (error) {
                 console.error('Error loading quiz data:', error);
-                alert('Failed to load quiz. Please try again.');
+                this.showModal('error', 'Loading Error', 'Failed to load quiz data. Please check your connection and try again.');
                 throw error; // Re-throw to be caught by init()
             }
         },
@@ -244,13 +261,13 @@ function quizApp() {
         // Start quiz
         startQuiz() {
             if (!this.studentName.trim()) {
-                alert('Please enter your name');
+                this.showModal('warning', 'Name Required', 'Please enter your name to start the quiz.');
                 return;
             }
             
             // Validate exam time
             if (!this.examTime || this.examTime <= 0) {
-                alert('Error: Invalid exam time. Please contact administrator.');
+                this.showModal('error', 'Configuration Error', 'Invalid exam time detected. Please contact the administrator.');
                 console.error('Invalid exam time:', this.examTime);
                 return;
             }
@@ -285,8 +302,11 @@ function quizApp() {
         
         timeUp() {
             this.stopTimer();
-            alert('Time is up! Submitting your quiz...');
-            this.submitQuiz();
+            this.showModal('warning', 'Time is Up!', 'Your time has expired. The quiz will be submitted automatically.');
+            setTimeout(() => {
+                this.closeModal();
+                this.submitQuiz();
+            }, 2000);
         },
         
         formatTime(seconds) {
@@ -401,7 +421,7 @@ function quizApp() {
                 } else if (response.status === 403) {
                     // Retry limit reached
                     const error = await response.json();
-                    alert(error.message || 'Maximum retry limit reached. You have already taken this quiz 3 times.');
+                    this.showModal('error', 'Retry Limit Reached', error.message || 'You have already taken this quiz 3 times. No more attempts allowed.');
                 } else {
                     const error = await response.json();
                     console.error('Failed to save attempt:', error);
