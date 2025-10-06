@@ -37,16 +37,13 @@ async function generateDeviceFingerprint() {
         components.push('canvas-error');
     }
     
-    // WebGL fingerprint
+    // WebGL fingerprint (without deprecated API)
     try {
         const canvas = document.createElement('canvas');
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
         if (gl) {
-            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-            if (debugInfo) {
-                components.push(gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL));
-                components.push(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
-            }
+            components.push(gl.getParameter(gl.VENDOR) || 'unknown-vendor');
+            components.push(gl.getParameter(gl.RENDERER) || 'unknown-renderer');
         }
     } catch (e) {
         components.push('webgl-error');
@@ -54,11 +51,29 @@ async function generateDeviceFingerprint() {
     
     // Generate hash from components
     const fingerprint = components.join('|');
-    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
-    const hashArray = Array.from(new Uint8Array(hash));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    return hashHex;
+    // Use crypto.subtle if available (HTTPS), otherwise use simple hash (HTTP)
+    if (window.crypto && window.crypto.subtle && window.isSecureContext) {
+        try {
+            const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
+            const hashArray = Array.from(new Uint8Array(hash));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        } catch (e) {
+            console.warn('crypto.subtle failed, using fallback hash');
+        }
+    }
+    
+    // Fallback: Simple hash function for HTTP environments
+    let hash = 0;
+    for (let i = 0; i < fingerprint.length; i++) {
+        const char = fingerprint.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    // Convert to hex and pad to look like SHA-256 (64 chars)
+    const simpleHash = Math.abs(hash).toString(16).padStart(16, '0');
+    return simpleHash.repeat(4).substring(0, 64);
 }
 
 // Quiz Application Alpine.js Component
