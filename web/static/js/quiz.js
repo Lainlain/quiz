@@ -146,6 +146,7 @@ function quizApp() {
                 const pkgData = await pkgResponse.json();
                 
                 this.quizPackageName = pkgData.title;
+                console.log('Quiz Package:', pkgData);
                 
                 // Load course details
                 const courseResponse = await fetch(`/api/student/courses/${pkgData.course_id}`);
@@ -155,9 +156,14 @@ function quizApp() {
                 this.courseName = courseData.title;
                 this.examTime = courseData.exam_time;
                 
+                console.log('Course Data:', courseData);
+                console.log('Exam Time:', this.examTime, 'minutes');
+                
                 // Load questions
                 const questionsResponse = await fetch(`/api/student/questions/package/${this.quizPackageId}`);
                 this.questions = await questionsResponse.json();
+                
+                console.log('Questions loaded:', this.questions.length);
                 
                 // Initialize answers array
                 this.answers = new Array(this.questions.length).fill(null);
@@ -199,9 +205,21 @@ function quizApp() {
                 return;
             }
             
+            // Validate exam time
+            if (!this.examTime || this.examTime <= 0) {
+                alert('Error: Invalid exam time. Please contact administrator.');
+                console.error('Invalid exam time:', this.examTime);
+                return;
+            }
+            
+            console.log('Starting quiz with exam time:', this.examTime, 'minutes');
+            
             this.currentScreen = 'quiz';
             this.timeRemaining = this.examTime * 60; // Convert to seconds
             this.startTime = Date.now();
+            
+            console.log('Time remaining (seconds):', this.timeRemaining);
+            
             this.startTimer();
         },
         
