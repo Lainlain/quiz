@@ -581,6 +581,92 @@ function dashboard() {
             showCustomModal('📊 Quiz Package Statistics', modal);
         },
         
+        // Show course statistics (students who attempted)
+        async showCourseStats(course) {
+            // Fetch statistics data
+            const stats = await this.apiCall(`/api/admin/courses/${course.id}/stats`);
+            
+            if (!stats) {
+                alert('Failed to load course statistics');
+                return;
+            }
+            
+            const modal = `
+                <div class="space-y-6">
+                    <!-- Header -->
+                    <div class="text-center pb-4 border-b">
+                        <h3 class="text-xl font-bold text-gray-900">${course.title}</h3>
+                        <p class="text-sm text-gray-500 mt-1">Student Attempts Overview</p>
+                    </div>
+                    
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-blue-600">${stats.total_attempts || 0}</div>
+                            <div class="text-xs text-gray-600 mt-1">Total Attempts</div>
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-purple-600">${stats.unique_students || 0}</div>
+                            <div class="text-xs text-gray-600 mt-1">Unique Students</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Student Attempts Table -->
+                    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="max-h-96 overflow-y-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student Name</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Attempts</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Best Score</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Attempt</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${stats.student_attempts && stats.student_attempts.length > 0 
+                                        ? stats.student_attempts.map(student => {
+                                            const percentage = Math.round((student.best_score / student.total_points) * 100);
+                                            const scoreColor = percentage >= 80 ? 'bg-green-100 text-green-800' : 
+                                                             percentage >= 60 ? 'bg-blue-100 text-blue-800' : 
+                                                             'bg-red-100 text-red-800';
+                                            return `
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-4 py-3 text-sm text-gray-900">${student.student_name}</td>
+                                                <td class="px-4 py-3 text-center">
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                        ${student.attempt_count} ${student.attempt_count >= 3 ? '(Max)' : ''}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 text-center">
+                                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${scoreColor}">
+                                                        ${student.best_score}/${student.total_points} (${percentage}%)
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 text-sm text-gray-500">${new Date(student.last_attempt).toLocaleString()}</td>
+                                            </tr>
+                                        `}).join('') 
+                                        : '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No attempts yet</td></tr>'
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3 pt-4 border-t">
+                        <button onclick="closeCustomModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                            Close
+                        </button>
+                        <button onclick="window.print()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                            📄 Print Report
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            showCustomModal('👥 Course Student Statistics', modal);
+        },
+        
         // Filter methods for drilldown
         filteredPackages() {
             if (!this.selectedCourseId) return this.packages;
