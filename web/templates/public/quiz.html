@@ -29,9 +29,13 @@
                     <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-20 w-20 rounded-full shadow-lg object-cover border-4 border-blue-100">
                 </div>
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">Mitsui JPY Language School</h1>
-                <div class="space-y-1">
+                <div class="space-y-1" x-show="!isLoading">
                     <p class="text-sm text-gray-600 font-medium" x-text="courseName"></p>
                     <p class="text-xs text-gray-500" x-text="quizPackageName"></p>
+                </div>
+                <!-- Loading state -->
+                <div x-show="isLoading" class="space-y-2">
+                    <p class="text-sm text-gray-500 animate-pulse">Loading quiz...</p>
                 </div>
             </div>
             
@@ -44,8 +48,8 @@
                            placeholder="Enter your full name">
                 </div>
                 
-                <!-- Quiz Info -->
-                <div class="bg-blue-50 rounded-lg p-4 space-y-2">
+                <!-- Quiz Info - Only show when data is loaded -->
+                <div x-show="!isLoading" class="bg-blue-50 rounded-lg p-4 space-y-2">
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-600">Total Questions:</span>
                         <span class="font-semibold text-gray-900" x-text="totalQuestions"></span>
@@ -60,8 +64,17 @@
                     </div>
                 </div>
                 
-                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
-                    Start Quiz
+                <!-- Loading skeleton -->
+                <div x-show="isLoading" class="bg-blue-50 rounded-lg p-4 space-y-2 animate-pulse">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">Loading quiz info...</span>
+                    </div>
+                </div>
+                
+                <button type="submit" :disabled="isLoading" 
+                        class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="!isLoading">Start Quiz</span>
+                    <span x-show="isLoading">Loading...</span>
                 </button>
             </form>
         </div>
@@ -330,6 +343,6 @@
     
 </div>
 
-<script src="/static/js/quiz.js?v=4.3"></script>
+<script src="/static/js/quiz.js?v=4.4"></script>
 </body>
 </html>

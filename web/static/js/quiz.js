@@ -75,6 +75,9 @@ function quizApp() {
         studentName: '',
         deviceId: '',
         
+        // Loading state
+        isLoading: true,
+        
         // Quiz state
         currentScreen: 'name', // 'name', 'quiz', 'results'
         questions: [],
@@ -116,6 +119,9 @@ function quizApp() {
             
             // Check if device already took this quiz
             await this.checkDeviceEligibility();
+            
+            // Data loaded, hide loading state
+            this.isLoading = false;
         },
         
         // Check if device is eligible to take this quiz
