@@ -102,26 +102,34 @@ function quizApp() {
         
         // Initialize
         async init() {
-            // Generate device fingerprint
-            this.deviceId = await generateDeviceFingerprint();
-            console.log('Device ID:', this.deviceId);
-            
-            // Get quiz package ID from URL
-            const urlParams = new URLSearchParams(window.location.search);
-            this.quizPackageId = parseInt(urlParams.get('package'));
-            
-            if (!this.quizPackageId) {
-                alert('Invalid quiz link');
-                return;
+            try {
+                // Generate device fingerprint
+                this.deviceId = await generateDeviceFingerprint();
+                console.log('Device ID:', this.deviceId);
+                
+                // Get quiz package ID from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                this.quizPackageId = parseInt(urlParams.get('package'));
+                
+                if (!this.quizPackageId) {
+                    alert('Invalid quiz link');
+                    this.isLoading = false;
+                    return;
+                }
+                
+                await this.loadQuizData();
+                
+                // Check if device already took this quiz
+                await this.checkDeviceEligibility();
+                
+                // Data loaded, hide loading state
+                this.isLoading = false;
+                console.log('Quiz initialization complete');
+            } catch (error) {
+                console.error('Initialization error:', error);
+                this.isLoading = false;
+                alert('Failed to load quiz. Please refresh the page.');
             }
-            
-            await this.loadQuizData();
-            
-            // Check if device already took this quiz
-            await this.checkDeviceEligibility();
-            
-            // Data loaded, hide loading state
-            this.isLoading = false;
         },
         
         // Check if device is eligible to take this quiz
@@ -147,8 +155,13 @@ function quizApp() {
         // Load quiz data
         async loadQuizData() {
             try {
+                console.log('Loading quiz data for package:', this.quizPackageId);
+                
                 // Load quiz package details
                 const pkgResponse = await fetch(`/api/student/quiz-packages/${this.quizPackageId}`);
+                if (!pkgResponse.ok) {
+                    throw new Error(`Failed to load quiz package: ${pkgResponse.status}`);
+                }
                 const pkgData = await pkgResponse.json();
                 
                 this.quizPackageName = pkgData.title;
@@ -156,6 +169,9 @@ function quizApp() {
                 
                 // Load course details
                 const courseResponse = await fetch(`/api/student/courses/${pkgData.course_id}`);
+                if (!courseResponse.ok) {
+                    throw new Error(`Failed to load course: ${courseResponse.status}`);
+                }
                 const courseData = await courseResponse.json();
                 
                 this.courseId = courseData.id;
@@ -167,6 +183,9 @@ function quizApp() {
                 
                 // Load questions
                 const questionsResponse = await fetch(`/api/student/questions/package/${this.quizPackageId}`);
+                if (!questionsResponse.ok) {
+                    throw new Error(`Failed to load questions: ${questionsResponse.status}`);
+                }
                 this.questions = await questionsResponse.json();
                 
                 console.log('Questions loaded:', this.questions.length);
@@ -185,9 +204,12 @@ function quizApp() {
                     }
                     return q;
                 });
+                
+                console.log('Quiz data loaded successfully');
             } catch (error) {
                 console.error('Error loading quiz data:', error);
                 alert('Failed to load quiz. Please try again.');
+                throw error; // Re-throw to be caught by init()
             }
         },
         
