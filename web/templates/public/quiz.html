@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Exam - Mitsui JPY Language School</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <style>
+        [x-cloak] { display: none !important; }
+        .question-fade { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+<div x-data="quizApp()" x-init="init()" class="min-h-screen">
+    
+    <!-- Student Name Input Screen -->
+    <div x-show="currentScreen === 'name'" x-cloak class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <!-- Brand Header -->
+            <div class="text-center mb-8">
+                <div class="text-4xl mb-4">🏫</div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Mitsui JPY Language School</h1>
+                <div class="space-y-1">
+                    <p class="text-sm text-gray-600 font-medium" x-text="courseName"></p>
+                    <p class="text-xs text-gray-500" x-text="quizPackageName"></p>
+                </div>
+            </div>
+            
+            <!-- Student Name Form -->
+            <form @submit.prevent="startQuiz" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Student Name</label>
+                    <input type="text" x-model="studentName" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Enter your full name">
+                </div>
+                
+                <!-- Quiz Info -->
+                <div class="bg-blue-50 rounded-lg p-4 space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Total Questions:</span>
+                        <span class="font-semibold text-gray-900" x-text="totalQuestions"></span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Time Limit:</span>
+                        <span class="font-semibold text-gray-900" x-text="examTime + ' minutes'"></span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Total Points:</span>
+                        <span class="font-semibold text-gray-900" x-text="totalPoints"></span>
+                    </div>
+                </div>
+                
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                    Start Quiz
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Quiz Screen -->
+    <div x-show="currentScreen === 'quiz'" x-cloak class="min-h-screen py-6 px-4">
+        <div class="max-w-3xl mx-auto">
+            <!-- Header with Timer -->
+            <div class="bg-white rounded-xl shadow-lg p-4 mb-6 sticky top-4 z-10">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <h2 class="text-lg font-bold text-gray-900" x-text="courseName"></h2>
+                        <p class="text-xs text-gray-500" x-text="studentName"></p>
+                    </div>
+                    <div class="text-center px-4 border-l border-r border-gray-200 mx-4">
+                        <div class="text-2xl font-bold" :class="timeRemaining < 60 ? 'text-red-600' : 'text-blue-600'" x-text="formatTime(timeRemaining)"></div>
+                        <div class="text-xs text-gray-500">Time Left</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-gray-900" x-text="(currentQuestionIndex + 1) + '/' + totalQuestions"></div>
+                        <div class="text-xs text-gray-500">Question</div>
+                    </div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="mt-4 bg-gray-200 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                         :style="`width: ${((currentQuestionIndex + 1) / totalQuestions) * 100}%`"></div>
+                </div>
+            </div>
+            
+            <!-- Question Card -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6 question-fade">
+                <template x-if="currentQuestion">
+                    <div>
+                        <div class="mb-6">
+                            <div class="flex items-start gap-3 mb-4">
+                                <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold" 
+                                      x-text="currentQuestionIndex + 1"></span>
+                                <div class="flex-1">
+                                    <p class="text-lg font-medium text-gray-900" x-text="currentQuestion.question_text"></p>
+                                    <p class="text-sm text-gray-500 mt-1" x-text="currentQuestion.points + ' points'"></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Multiple Choice Options -->
+                        <div x-show="currentQuestion.question_type === 'multiple_choice'" class="space-y-3">
+                            <template x-for="(option, index) in currentQuestion.options" :key="index">
+                                <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:bg-blue-50"
+                                       :class="answers[currentQuestionIndex] === option ? 'border-blue-600 bg-blue-50' : 'border-gray-200'">
+                                    <input type="radio" 
+                                           :name="'q' + currentQuestionIndex" 
+                                           :value="option"
+                                           x-model="answers[currentQuestionIndex]"
+                                           class="w-5 h-5 text-blue-600">
+                                    <span class="ml-3 text-gray-900" x-text="option"></span>
+                                </label>
+                            </template>
+                        </div>
+                        
+                        <!-- True/False -->
+                        <div x-show="currentQuestion.question_type === 'true_false'" class="space-y-3">
+                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:bg-blue-50"
+                                   :class="answers[currentQuestionIndex] === 'True' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'">
+                                <input type="radio" name="trueFalse" value="True" x-model="answers[currentQuestionIndex]" class="w-5 h-5 text-blue-600">
+                                <span class="ml-3 text-gray-900">True</span>
+                            </label>
+                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:bg-blue-50"
+                                   :class="answers[currentQuestionIndex] === 'False' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'">
+                                <input type="radio" name="trueFalse" value="False" x-model="answers[currentQuestionIndex]" class="w-5 h-5 text-blue-600">
+                                <span class="ml-3 text-gray-900">False</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Short Answer -->
+                        <div x-show="currentQuestion.question_type === 'short_answer'">
+                            <textarea x-model="answers[currentQuestionIndex]" rows="4"
+                                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      placeholder="Type your answer here..."></textarea>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Navigation Buttons -->
+            <div class="flex gap-4">
+                <button @click="previousQuestion" 
+                        x-show="currentQuestionIndex > 0"
+                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition">
+                    ← Previous
+                </button>
+                <button @click="nextQuestion" 
+                        x-show="currentQuestionIndex < totalQuestions - 1"
+                        class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+                    Next →
+                </button>
+                <button @click="submitQuiz" 
+                        x-show="currentQuestionIndex === totalQuestions - 1"
+                        class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition">
+                    Submit Quiz
+                </button>
+            </div>
+            
+            <!-- Question Navigator -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
+                <h3 class="text-sm font-semibold text-gray-700 mb-4">Question Navigator</h3>
+                <div class="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                    <template x-for="(q, index) in questions" :key="index">
+                        <button @click="goToQuestion(index)"
+                                class="aspect-square rounded-lg text-sm font-medium transition"
+                                :class="answers[index] ? 'bg-green-500 text-white' : (index === currentQuestionIndex ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700')"
+                                x-text="index + 1">
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Results Screen -->
+    <div x-show="currentScreen === 'results'" x-cloak class="min-h-screen py-6 px-4">
+        <div class="max-w-4xl mx-auto">
+            <!-- Results Header -->
+            <div class="bg-white rounded-2xl shadow-2xl overflow-hidden mb-6">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white text-center">
+                    <div class="text-5xl mb-4">🎉</div>
+                    <h1 class="text-3xl font-bold mb-2">Quiz Completed!</h1>
+                    <p class="text-blue-100" x-text="studentName"></p>
+                </div>
+                
+                <!-- Score Card -->
+                <div class="p-8">
+                    <div class="text-center mb-8">
+                        <div class="inline-block">
+                            <div class="text-6xl font-bold mb-2" 
+                                 :class="results.percentage >= 80 ? 'text-green-600' : (results.percentage >= 60 ? 'text-yellow-600' : 'text-red-600')"
+                                 x-text="results.percentage + '%'"></div>
+                            <div class="text-gray-600 text-lg">Your Score</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-blue-50 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-600" x-text="results.score + '/' + results.totalPoints"></div>
+                            <div class="text-xs text-gray-600 mt-1">Points</div>
+                        </div>
+                        <div class="bg-green-50 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-green-600" x-text="results.correct"></div>
+                            <div class="text-xs text-gray-600 mt-1">Correct</div>
+                        </div>
+                        <div class="bg-red-50 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-red-600" x-text="results.incorrect"></div>
+                            <div class="text-xs text-gray-600 mt-1">Incorrect</div>
+                        </div>
+                        <div class="bg-purple-50 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-purple-600" x-text="formatTime(results.timeTaken)"></div>
+                            <div class="text-xs text-gray-600 mt-1">Time Taken</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Performance Badge -->
+                    <div class="text-center mb-6">
+                        <span class="inline-flex items-center gap-2 px-6 py-3 rounded-full text-lg font-semibold"
+                              :class="results.percentage >= 80 ? 'bg-green-100 text-green-800' : (results.percentage >= 60 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800')">
+                            <span x-text="results.percentage >= 80 ? '🌟 Excellent!' : (results.percentage >= 60 ? '👍 Good Job!' : '📚 Keep Practicing!')"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Question Review -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">Answer Review</h2>
+                <div class="space-y-4">
+                    <template x-for="(question, index) in questions" :key="index">
+                        <div class="border rounded-lg p-4"
+                             :class="results.details[index].isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold"
+                                     :class="results.details[index].isCorrect ? 'bg-green-600 text-white' : 'bg-red-600 text-white'">
+                                    <span x-show="results.details[index].isCorrect">✓</span>
+                                    <span x-show="!results.details[index].isCorrect">✗</span>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-gray-900 mb-2" x-text="'Q' + (index + 1) + ': ' + question.question_text"></p>
+                                    <div class="text-sm space-y-1">
+                                        <div>
+                                            <span class="text-gray-600">Your Answer:</span>
+                                            <span class="font-medium ml-1" 
+                                                  :class="results.details[index].isCorrect ? 'text-green-700' : 'text-red-700'"
+                                                  x-text="results.details[index].userAnswer || '(Not answered)'"></span>
+                                        </div>
+                                        <div x-show="!results.details[index].isCorrect">
+                                            <span class="text-gray-600">Correct Answer:</span>
+                                            <span class="font-medium text-green-700 ml-1" x-text="results.details[index].correctAnswer"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-sm font-semibold"
+                                     :class="results.details[index].isCorrect ? 'text-green-700' : 'text-red-700'"
+                                     x-text="results.details[index].pointsEarned + '/' + question.points"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="mt-6 flex gap-4">
+                <button @click="printResults" class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+                    📄 Print Results
+                </button>
+                <button @click="restartQuiz" class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition">
+                    🔄 Retake Quiz
+                </button>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<script src="/static/js/quiz.js?v=2.0"></script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+{{define "dashboard.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Mitsui JPY Admin</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js for reactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+<div x-data="dashboard()" x-init="init()" class="min-h-screen bg-gray-50">
+    <!-- Sidebar -->
+    <aside class="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 z-30">
+        <!-- Logo -->
+        <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200">
+            <div>
+                <h1 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <span>🏫</span>
+                    <span>Mitsui JPY</span>
+                </h1>
+                <p class="text-xs text-gray-500" x-text="user.name"></p>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="px-3 py-4 space-y-1">
+            <a href="#" @click.prevent="switchView('overview')" 
+               :class="currentView === 'overview' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span>Overview</span>
+            </a>
+
+            <a href="#" @click.prevent="switchView('courses')"
+               :class="currentView === 'courses' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span>Courses</span>
+            </a>
+
+            <a href="#" @click.prevent="switchView('packages')"
+               :class="currentView === 'packages' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span>Quiz Packages</span>
+            </a>
+
+            <a href="#" @click.prevent="switchView('questions')"
+               :class="currentView === 'questions' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Questions</span>
+            </a>
+        </nav>
+
+        <!-- Logout Button -->
+        <div class="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-200">
+            <button @click="logout" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="ml-64">
+        <!-- Top Header -->
+        <header class="h-16 bg-white border-b border-gray-200 px-8 flex items-center justify-between sticky top-0 z-20">
+            <h2 class="text-2xl font-bold text-gray-900" x-text="viewTitle"></h2>
+            <button x-show="currentView !== 'overview'" @click="openAddModal" 
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span x-text="'Add ' + (currentView === 'courses' ? 'Course' : currentView === 'packages' ? 'Package' : 'Question')"></span>
+            </button>
+        </header>
+
+        <!-- Content Area -->
+        <main class="p-8">
+            <!-- Overview -->
+            <div x-show="currentView === 'overview'" x-cloak>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Total Courses</p>
+                                <p class="text-3xl font-bold text-gray-900 mt-2" x-text="stats.courses"></p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Quiz Packages</p>
+                                <p class="text-3xl font-bold text-gray-900 mt-2" x-text="stats.packages"></p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Total Questions</p>
+                                <p class="text-3xl font-bold text-gray-900 mt-2" x-text="stats.questions"></p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Active Students</p>
+                                <p class="text-3xl font-bold text-gray-900 mt-2" x-text="stats.students"></p>
+                            </div>
+                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Courses View -->
+            <div x-show="currentView === 'courses'" x-cloak>
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Packages</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Limit</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retry</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="course in courses" :key="course.id">
+                                                    <tr class="hover:bg-gray-50 transition cursor-pointer" @click="selectCourse(course)">
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900" x-text="course.title"></div>
+                                        <div class="text-xs text-gray-500" x-text="course.description"></div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" x-text="getCoursePackageCount(course.id)"></span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800" x-text="getCourseQuestionCount(course.id)"></span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="course.student_limit"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="course.retry_count"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="course.exam_time + ' min'"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span :class="course.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'" 
+                                              class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                            <span x-text="course.is_active ? 'Active' : 'Inactive'"></span>
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button @click.stop="editCourse(course)" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                        <button @click.stop="deleteCourse(course.id)" class="text-red-600 hover:text-red-900">Delete</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    <div x-show="courses.length === 0" class="text-center py-12 text-gray-500">
+                        No courses found. Click "Add Course" to create one.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Packages View -->
+            <div x-show="currentView === 'packages'" x-cloak>
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="pkg in filteredPackages()" :key="pkg.id">
+                                                    <tr class="hover:bg-gray-50 transition cursor-pointer" @click="selectPackage(pkg)">
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900" x-text="pkg.title"></div>
+                                        <div class="text-xs text-gray-500" x-text="pkg.description"></div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="getCourseName(pkg.course_id)"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800" x-text="getPackageQuestionCount(pkg.id)"></span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span :class="pkg.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'" 
+                                              class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                            <span x-text="pkg.is_active ? 'Active' : 'Inactive'"></span>
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button @click.stop="showPackageStats(pkg)" class="text-purple-600 hover:text-purple-900 mr-3" title="View Statistics">📊</button>
+                                        <button @click.stop="copyQuizLink(pkg.id)" class="text-green-600 hover:text-green-900 mr-3" title="Copy Quiz Link">📋</button>
+                                        <button @click.stop="editPackage(pkg)" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                        <button @click.stop="deletePackage(pkg.id)" class="text-red-600 hover:text-red-900">Delete</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    <div x-show="packages.length === 0" class="text-center py-12 text-gray-500">
+                        No quiz packages found. Click "Add Package" to create one.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions View -->
+            <div x-show="currentView === 'questions'" x-cloak>
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Package</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="question in filteredQuestions()" :key="question.id">
+                                                    <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900" x-text="question.question_text"></div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800" x-text="question.question_type"></span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="question.points"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="getPackageName(question.quiz_package_id)"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button @click="editQuestion(question)" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                        <button @click="deleteQuestion(question.id)" class="text-red-600 hover:text-red-900">Delete</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    <div x-show="questions.length === 0" class="text-center py-12 text-gray-500">
+                        No questions found. Click "Add Question" to create one.
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal placeholder - will be added via Alpine.js modals -->
+</div>
+
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>
+{{end}}
