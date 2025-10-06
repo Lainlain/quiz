@@ -25,7 +25,9 @@
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
             <!-- Brand Header -->
             <div class="text-center mb-8">
-                <div class="text-4xl mb-4">🏫</div>
+                <div class="flex justify-center mb-4">
+                    <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-20 w-20 rounded-full shadow-lg object-cover border-4 border-blue-100">
+                </div>
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">Mitsui JPY Language School</h1>
                 <div class="space-y-1">
                     <p class="text-sm text-gray-600 font-medium" x-text="courseName"></p>
@@ -65,15 +67,57 @@
         </div>
     </div>
     
+    <!-- Device Blocked Screen -->
+    <div x-show="currentScreen === 'blocked'" x-cloak class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <!-- Brand Header -->
+            <div class="text-center mb-8">
+                <div class="flex justify-center mb-4">
+                    <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-20 w-20 rounded-full shadow-lg object-cover border-4 border-red-100">
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Mitsui JPY Language School</h1>
+            </div>
+            
+            <!-- Blocked Message -->
+            <div class="text-center space-y-6">
+                <div class="bg-red-50 rounded-lg p-6">
+                    <div class="text-5xl mb-4">🚫</div>
+                    <h2 class="text-xl font-bold text-red-700 mb-3">Quiz Already Taken</h2>
+                    <p class="text-gray-600">
+                        You have already completed this quiz from this device. 
+                        Each student can only take the quiz once per device to ensure fairness.
+                    </p>
+                </div>
+                
+                <!-- Quiz Info -->
+                <div class="bg-gray-50 rounded-lg p-4 text-left space-y-2">
+                    <div class="text-sm text-gray-600">
+                        <strong>Course:</strong> <span x-text="courseName"></span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <strong>Quiz:</strong> <span x-text="quizPackageName"></span>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-gray-500">
+                    If you believe this is an error, please contact your instructor.
+                </p>
+            </div>
+        </div>
+    </div>
+    
     <!-- Quiz Screen -->
     <div x-show="currentScreen === 'quiz'" x-cloak class="min-h-screen py-6 px-4">
         <div class="max-w-3xl mx-auto">
             <!-- Header with Timer -->
             <div class="bg-white rounded-xl shadow-lg p-4 mb-6 sticky top-4 z-10">
                 <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <h2 class="text-lg font-bold text-gray-900" x-text="courseName"></h2>
-                        <p class="text-xs text-gray-500" x-text="studentName"></p>
+                    <div class="flex items-center gap-3 flex-1">
+                        <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-12 w-12 rounded-full object-cover border-2 border-gray-200">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900" x-text="courseName"></h2>
+                            <p class="text-xs text-gray-500" x-text="studentName"></p>
+                        </div>
                     </div>
                     <div class="text-center px-4 border-l border-r border-gray-200 mx-4">
                         <div class="text-2xl font-bold" :class="timeRemaining < 60 ? 'text-red-600' : 'text-blue-600'" x-text="formatTime(timeRemaining)"></div>
@@ -187,7 +231,9 @@
             <!-- Results Header -->
             <div class="bg-white rounded-2xl shadow-2xl overflow-hidden mb-6">
                 <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white text-center">
-                    <div class="text-5xl mb-4">🎉</div>
+                    <div class="flex justify-center mb-4">
+                        <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-20 w-20 rounded-full border-4 border-white shadow-lg object-cover">
+                    </div>
                     <h1 class="text-3xl font-bold mb-2">Quiz Completed!</h1>
                     <p class="text-blue-100" x-text="studentName"></p>
                 </div>
@@ -284,6 +330,6 @@
     
 </div>
 
-<script src="/static/js/quiz.js?v=2.0"></script>
+<script src="/static/js/quiz.js?v=4.2"></script>
 </body>
 </html>

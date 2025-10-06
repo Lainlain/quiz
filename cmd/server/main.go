@@ -70,6 +70,7 @@ func main() {
 
 		// Public quiz submission (no auth required)
 		public.POST("/quiz/submit", studentHandler.SubmitPublicQuiz)
+		public.GET("/quiz/check-device", studentHandler.CheckDeviceEligibility)
 	}
 
 	// Admin routes (requires auth + admin role)

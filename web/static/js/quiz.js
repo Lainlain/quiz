@@ -1,3 +1,66 @@
+// Device Fingerprinting Function
+async function generateDeviceFingerprint() {
+    const components = [];
+    
+    // Screen information
+    components.push(screen.width);
+    components.push(screen.height);
+    components.push(screen.colorDepth);
+    
+    // Timezone
+    components.push(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    
+    // Language
+    components.push(navigator.language);
+    
+    // Platform
+    components.push(navigator.platform);
+    
+    // Hardware concurrency
+    components.push(navigator.hardwareConcurrency || 'unknown');
+    
+    // User agent
+    components.push(navigator.userAgent);
+    
+    // Canvas fingerprint
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#f60';
+        ctx.fillRect(125, 1, 62, 20);
+        ctx.fillStyle = '#069';
+        ctx.fillText('Mitsui JPY Quiz', 2, 15);
+        components.push(canvas.toDataURL());
+    } catch (e) {
+        components.push('canvas-error');
+    }
+    
+    // WebGL fingerprint
+    try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (gl) {
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            if (debugInfo) {
+                components.push(gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL));
+                components.push(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
+            }
+        }
+    } catch (e) {
+        components.push('webgl-error');
+    }
+    
+    // Generate hash from components
+    const fingerprint = components.join('|');
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
+    const hashArray = Array.from(new Uint8Array(hash));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return hashHex;
+}
+
 // Quiz Application Alpine.js Component
 function quizApp() {
     return {
@@ -10,6 +73,7 @@ function quizApp() {
         
         // Student info
         studentName: '',
+        deviceId: '',
         
         // Quiz state
         currentScreen: 'name', // 'name', 'quiz', 'results'
@@ -35,9 +99,13 @@ function quizApp() {
         
         // Initialize
         async init() {
+            // Generate device fingerprint
+            this.deviceId = await generateDeviceFingerprint();
+            console.log('Device ID:', this.deviceId);
+            
             // Get quiz package ID from URL
             const urlParams = new URLSearchParams(window.location.search);
-            this.quizPackageId = urlParams.get('package');
+            this.quizPackageId = parseInt(urlParams.get('package'));
             
             if (!this.quizPackageId) {
                 alert('Invalid quiz link');
@@ -45,6 +113,29 @@ function quizApp() {
             }
             
             await this.loadQuizData();
+            
+            // Check if device already took this quiz
+            await this.checkDeviceEligibility();
+        },
+        
+        // Check if device is eligible to take this quiz
+        async checkDeviceEligibility() {
+            try {
+                const response = await fetch(`/api/quiz/check-device?quiz_package_id=${this.quizPackageId}&device_id=${this.deviceId}`);
+                const data = await response.json();
+                
+                if (data.already_taken) {
+                    alert('You have already taken this quiz from this device. Each student can only take the quiz once per device.');
+                    this.currentScreen = 'blocked';
+                } else if (data.student_name) {
+                    // Auto-fill student name from previous quiz on this device
+                    this.studentName = data.student_name;
+                    console.log('Auto-filled student name:', this.studentName);
+                }
+            } catch (error) {
+                console.error('Error checking device eligibility:', error);
+                // Continue anyway if check fails
+            }
         },
         
         // Load quiz data
@@ -217,32 +308,38 @@ function quizApp() {
         // Save attempt to backend
         async saveAttempt() {
             try {
+                const payload = {
+                    student_name: this.studentName,
+                    course_id: this.courseId,
+                    quiz_package_id: this.quizPackageId,
+                    device_id: this.deviceId,
+                    score: this.results.score,
+                    total_points: this.results.totalPoints,
+                    time_taken: this.results.timeTaken,
+                    answers: this.results.details.map(detail => ({
+                        question_id: detail.questionId,
+                        user_answer: detail.userAnswer,
+                        is_correct: detail.isCorrect,
+                        points_earned: detail.pointsEarned
+                    }))
+                };
+                
+                console.log('Submitting quiz with payload:', payload);
+                
                 const response = await fetch('/api/quiz/submit', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        student_name: this.studentName,
-                        course_id: this.course.id,
-                        quiz_package_id: this.quizPackage.id,
-                        score: this.results.score,
-                        total_points: this.results.totalPoints,
-                        time_taken: this.results.timeTaken,
-                        answers: this.results.details.map(detail => ({
-                            question_id: detail.questionId,
-                            user_answer: detail.userAnswer,
-                            is_correct: detail.isCorrect,
-                            points_earned: detail.pointsEarned
-                        }))
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
                 if (response.ok) {
                     const data = await response.json();
                     console.log('Attempt saved successfully:', data);
                 } else {
-                    console.error('Failed to save attempt');
+                    const error = await response.json();
+                    console.error('Failed to save attempt:', error);
                 }
             } catch (error) {
                 console.error('Error saving attempt:', error);

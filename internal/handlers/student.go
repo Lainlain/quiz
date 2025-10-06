@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"mitsui-jpy-quiz/internal/database"
 	"mitsui-jpy-quiz/internal/models"
 	"net/http"
@@ -240,23 +241,28 @@ type PublicQuizSubmission struct {
 	StudentName   string `json:"student_name" binding:"required"`
 	CourseID      uint   `json:"course_id" binding:"required"`
 	QuizPackageID uint   `json:"quiz_package_id" binding:"required"`
-	Score         int    `json:"score" binding:"required"`
-	TotalPoints   int    `json:"total_points" binding:"required"`
+	DeviceID      string `json:"device_id"`
+	Score         int    `json:"score"`
+	TotalPoints   int    `json:"total_points"`
 	TimeTaken     int    `json:"time_taken"`
 	Answers       []struct {
-		QuestionID   uint   `json:"question_id" binding:"required"`
+		QuestionID   uint   `json:"question_id"`
 		UserAnswer   string `json:"user_answer"`
 		IsCorrect    bool   `json:"is_correct"`
 		PointsEarned int    `json:"points_earned"`
-	} `json:"answers" binding:"required"`
+	} `json:"answers"`
 }
 
 func (h *StudentHandler) SubmitPublicQuiz(c *gin.Context) {
 	var req PublicQuizSubmission
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("Validation error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	
+	log.Printf("Received quiz submission: Name=%s, CourseID=%d, QuizPackageID=%d, DeviceID=%s, Score=%d, Answers=%d", 
+		req.StudentName, req.CourseID, req.QuizPackageID, req.DeviceID, req.Score, len(req.Answers))
 
 	// Validate course and quiz package exist
 	var course models.Course
@@ -298,6 +304,7 @@ func (h *StudentHandler) SubmitPublicQuiz(c *gin.Context) {
 		StudentID:     guestUser.ID,
 		CourseID:      req.CourseID,
 		QuizPackageID: req.QuizPackageID,
+		DeviceID:      req.DeviceID,
 		Status:        models.StatusCompleted,
 		StartTime:     now,
 		EndTime:       &endTime,
@@ -328,5 +335,48 @@ func (h *StudentHandler) SubmitPublicQuiz(c *gin.Context) {
 		"attempt_id": attempt.ID,
 		"score":      req.Score,
 		"percentage": float64(req.Score) / float64(req.TotalPoints) * 100,
+	})
+}
+
+// CheckDeviceEligibility checks if a device has already taken the quiz
+func (h *StudentHandler) CheckDeviceEligibility(c *gin.Context) {
+	quizPackageID := c.Query("quiz_package_id")
+	deviceID := c.Query("device_id")
+
+	if quizPackageID == "" || deviceID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required parameters"})
+		return
+	}
+
+	// Check if this device has already submitted any quiz (not just this package)
+	var attempt models.Attempt
+	var studentName string
+	
+	// First check if device took THIS specific quiz
+	err := database.DB.Where("quiz_package_id = ? AND device_id = ? AND status = ?",
+		quizPackageID, deviceID, models.StatusCompleted).
+		First(&attempt).Error
+	
+	alreadyTakenThisQuiz := err == nil
+	
+	// Then get the student name from any previous attempt on this device
+	if !alreadyTakenThisQuiz {
+		// Check other quizzes from this device to get student name
+		err = database.DB.Where("device_id = ? AND status = ?", deviceID, models.StatusCompleted).
+			Order("created_at DESC").
+			First(&attempt).Error
+	}
+	
+	if err == nil {
+		// Get student name from user record
+		var user models.User
+		if err := database.DB.First(&user, attempt.StudentID).Error; err == nil {
+			studentName = user.Name
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"already_taken": alreadyTakenThisQuiz,
+		"student_name":  studentName,
 	})
 }

@@ -23,6 +23,7 @@ type Attempt struct {
 	StudentID     uint          `gorm:"not null" json:"student_id"`
 	CourseID      uint          `gorm:"not null" json:"course_id"`
 	QuizPackageID uint          `gorm:"not null" json:"quiz_package_id"`
+	DeviceID      string        `gorm:"type:varchar(255);index" json:"device_id"` // Device fingerprint
 	Status        AttemptStatus `gorm:"type:varchar(20);default:'in_progress'" json:"status"`
 
 	StartTime    time.Time  `json:"start_time"`
