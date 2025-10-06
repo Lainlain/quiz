@@ -260,8 +260,8 @@ func (h *StudentHandler) SubmitPublicQuiz(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
-	log.Printf("Received quiz submission: Name=%s, CourseID=%d, QuizPackageID=%d, DeviceID=%s, Score=%d, Answers=%d", 
+
+	log.Printf("Received quiz submission: Name=%s, CourseID=%d, QuizPackageID=%d, DeviceID=%s, Score=%d, Answers=%d",
 		req.StudentName, req.CourseID, req.QuizPackageID, req.DeviceID, req.Score, len(req.Answers))
 
 	// Validate course and quiz package exist
@@ -368,14 +368,14 @@ func (h *StudentHandler) CheckDeviceEligibility(c *gin.Context) {
 	// Check if this device has already submitted any quiz (not just this package)
 	var attempt models.Attempt
 	var studentName string
-	
+
 	// First check if device took THIS specific quiz
 	err := database.DB.Where("quiz_package_id = ? AND device_id = ? AND status = ?",
 		quizPackageID, deviceID, models.StatusCompleted).
 		First(&attempt).Error
-	
+
 	alreadyTakenThisQuiz := err == nil
-	
+
 	// Then get the student name from any previous attempt on this device
 	if !alreadyTakenThisQuiz {
 		// Check other quizzes from this device to get student name
@@ -383,7 +383,7 @@ func (h *StudentHandler) CheckDeviceEligibility(c *gin.Context) {
 			Order("created_at DESC").
 			First(&attempt).Error
 	}
-	
+
 	if err == nil {
 		// Get student name from user record
 		var user models.User

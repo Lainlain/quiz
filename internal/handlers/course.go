@@ -103,9 +103,9 @@ func (h *CourseHandler) GetCourseStats(c *gin.Context) {
 	// Count total unique students (by device_id and student_id)
 	var totalAttempts int64
 	var uniqueStudents int64
-	
+
 	database.DB.Model(&models.Attempt{}).Where("course_id = ?", id).Count(&totalAttempts)
-	
+
 	// Count unique students by device_id (for public quiz takers)
 	database.DB.Model(&models.Attempt{}).
 		Where("course_id = ? AND device_id != ''", id).

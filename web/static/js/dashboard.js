@@ -425,11 +425,41 @@ function dashboard() {
         // Copy quiz link
         copyQuizLink(packageId) {
             const quizUrl = `${window.location.origin}/quiz?package=${packageId}`;
-            navigator.clipboard.writeText(quizUrl).then(() => {
-                alert('✅ Quiz link copied to clipboard!\n\n' + quizUrl);
-            }).catch(() => {
-                prompt('Copy this quiz link:', quizUrl);
-            });
+            
+            // Try modern clipboard API first (requires HTTPS)
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(quizUrl).then(() => {
+                    alert('✅ Quiz link copied to clipboard!\n\n' + quizUrl);
+                }).catch(() => {
+                    this.fallbackCopy(quizUrl);
+                });
+            } else {
+                // Fallback for HTTP or older browsers
+                this.fallbackCopy(quizUrl);
+            }
+        },
+        
+        fallbackCopy(text) {
+            // Create temporary textarea
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            
+            // Select and copy
+            textarea.focus();
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                alert('✅ Quiz link copied to clipboard!\n\n' + text);
+            } catch (err) {
+                // If all else fails, show prompt to manually copy
+                prompt('Copy this quiz link:', text);
+            }
+            
+            document.body.removeChild(textarea);
         },
         
         // Show package statistics
