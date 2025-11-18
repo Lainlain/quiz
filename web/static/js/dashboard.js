@@ -9,6 +9,8 @@ function dashboard() {
         // Selection for drilldown
         selectedCourseId: null,
         selectedPackageId: null,
+        selectedCourseForStudents: null,
+        studentViewMode: 'courses', // 'courses' or 'all'
         
         // Data
         stats: {
@@ -20,6 +22,12 @@ function dashboard() {
         courses: [],
         packages: [],
         questions: [],
+        students: [],
+        studentCourses: [],
+        courseStudents: [],
+        courseEnrollments: [],
+        allStudents: [],
+        totalStudentCount: 0,
         
         // Initialize
         async init() {
@@ -85,21 +93,25 @@ function dashboard() {
                     this.viewTitle = 'Questions';
                     await this.loadQuestions();
                     break;
+                case 'students':
+                    this.viewTitle = 'Students';
+                    await this.loadStudents();
+                    break;
             }
         },
         
         // Load Data
         async loadStats() {
-            const [courses, packages, questions] = await Promise.all([
+            const [courses, studentData] = await Promise.all([
                 this.apiCall('/api/student/courses'),
-                Promise.resolve([]), // We'll count from courses
-                Promise.resolve([])
+                this.apiCall('/api/admin/students/courses')
             ]);
             
             this.stats.courses = courses?.length || 0;
+            this.stats.students = studentData?.total_students || 0;
+            this.totalStudentCount = studentData?.total_students || 0;
             this.stats.packages = 0;
             this.stats.questions = 0;
-            this.stats.students = 0; // TODO: Add students endpoint
         },
         
         async loadCourses() {
@@ -142,6 +154,140 @@ function dashboard() {
                 }
             }
             this.stats.questions = this.questions.length;
+        },
+        
+        async loadStudents() {
+            // Load courses with student count for the main view
+            const data = await this.apiCall('/api/admin/students/courses');
+            
+            if (data) {
+                this.totalStudentCount = data.total_students || 0;
+                this.studentCourses = data.courses || [];
+                this.stats.students = data.total_students || 0;
+            } else {
+                this.totalStudentCount = 0;
+                this.studentCourses = [];
+                this.stats.students = 0;
+            }
+            
+            // Reset selection
+            this.selectedCourseForStudents = null;
+            this.courseStudents = [];
+        },
+        
+        async selectCourseForStudents(course) {
+            this.selectedCourseForStudents = course;
+            // Load enrollments for this course
+            const data = await this.apiCall(`/api/admin/enrollments/course/${course.id}`);
+            this.courseEnrollments = data || [];
+        },
+        
+        copyRegistrationLink(courseId) {
+            const link = window.location.origin + '/register/' + courseId;
+            const input = document.getElementById('reg-link-' + courseId);
+            input.select();
+            document.execCommand('copy');
+            alert('Registration link copied to clipboard!');
+        },
+        
+        async updateEnrollmentStatus(enrollmentId, status) {
+            const confirmed = confirm(`Are you sure you want to ${status} this enrollment?`);
+            if (!confirmed) return;
+            
+            const result = await this.apiCall(`/api/admin/enrollments/${enrollmentId}/status`, 'PUT', { status });
+            
+            if (result) {
+                alert(`Enrollment ${status} successfully!`);
+                // Reload enrollments
+                if (this.selectedCourseForStudents) {
+                    await this.selectCourseForStudents(this.selectedCourseForStudents);
+                }
+            }
+        },
+        
+        viewEnrollmentDetails(enrollment) {
+            const modal = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <p class="text-gray-900">${enrollment.name}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <p class="text-gray-900">${enrollment.email}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <p class="text-gray-900">${enrollment.phone_number}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <p class="text-gray-900 capitalize font-semibold">${enrollment.status}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                        <p class="text-gray-900">${enrollment.address}</p>
+                    </div>
+                    ${enrollment.facebook_url ? `
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Facebook URL</label>
+                        <a href="${enrollment.facebook_url}" target="_blank" class="text-blue-600 hover:underline">${enrollment.facebook_url}</a>
+                    </div>
+                    ` : ''}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Registration Date</label>
+                        <p class="text-gray-900">${this.formatDate(enrollment.created_at)}</p>
+                    </div>
+                </div>
+            `;
+            this.showModal('Enrollment Details', modal, false);
+        },
+        
+        async loadAllStudents() {
+            // Load all registered students
+            const data = await this.apiCall('/api/admin/students');
+            this.allStudents = data || [];
+        },
+        
+        viewStudentDetails(student) {
+            // Show modal with student details
+            const modal = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ID</label>
+                            <p class="text-gray-900">${student.id}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <p class="text-gray-900">${student.name}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <p class="text-gray-900">${student.email}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Courses Enrolled</label>
+                            <p class="text-xl font-bold text-blue-600">${student.enrollments_count || 0}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Total Attempts</label>
+                            <p class="text-xl font-bold text-purple-600">${student.total_attempts || 0}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Registered Date</label>
+                        <p class="text-gray-900">${this.formatDate(student.created_at)}</p>
+                    </div>
+                </div>
+            `;
+            this.showModal('Student Details', modal, false);
         },
         
         // CRUD Operations - Courses
@@ -726,6 +872,58 @@ function dashboard() {
             this.viewTitle = 'Questions';
             // Load questions when package is selected
             await this.loadQuestions();
+        },
+        
+        // Student Management
+        formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        },
+        
+        async viewStudentCourseDetails(student) {
+            // Show student course details modal
+            const modal = `
+                <div class="space-y-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-lg mb-3">${student.name}</h3>
+                        <div class="space-y-2 text-sm">
+                            <p><span class="font-medium">Email:</span> ${student.email}</p>
+                            <p><span class="font-medium">Course:</span> ${this.selectedCourseForStudents.title}</p>
+                            <p><span class="font-medium">Attempts in Course:</span> ${student.attempts_in_course}</p>
+                            <p><span class="font-medium">Best Score:</span> ${student.best_score} pts (${student.best_percentage.toFixed(1)}%)</p>
+                            <p><span class="font-medium">Last Attempt:</span> ${this.formatDate(student.last_attempt_date)}</p>
+                            <p><span class="font-medium">Status:</span> <span class="capitalize">${student.status}</span></p>
+                            <p><span class="font-medium">Registered:</span> ${this.formatDate(student.created_at)}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button onclick="closeCustomModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            showCustomModal('Student Course Details', modal);
+        },
+        
+        async deleteStudent(studentId) {
+            if (!confirm('Are you sure you want to delete this student? This will also delete all their attempts and data.')) {
+                return;
+            }
+            
+            const response = await this.apiCall(`/api/admin/students/${studentId}`, 'DELETE');
+            
+            if (response && response.message) {
+                alert('Student deleted successfully');
+                await this.loadStudents();
+                await this.loadStats();
+            } else {
+                alert('Failed to delete student');
+            }
         },
         
         // Logout

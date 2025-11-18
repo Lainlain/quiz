@@ -15,15 +15,34 @@
         [x-cloak] { display: none !important; }
         .question-fade { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    <style>
-        [x-cloak] { display: none !important; }
-        .question-fade { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         /* Modal animations */
         .modal-overlay { animation: fadeIn 0.2s ease-out; }
         .modal-content { animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Mobile-optimized compact design */
+        @media (max-width: 640px) {
+            body { font-size: 14px; }
+            .compact-padding { padding: 0.75rem !important; }
+            .compact-gap { gap: 0.5rem !important; }
+            .compact-text { font-size: 0.875rem !important; }
+            .compact-heading { font-size: 1.125rem !important; }
+        }
+        
+        /* Touch-friendly buttons */
+        .touch-button {
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+        
+        /* Compact answer buttons for mobile */
+        @media (max-width: 640px) {
+            .answer-option {
+                padding: 0.75rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
@@ -89,214 +108,299 @@
     </div>
     
     <!-- Student Name Input Screen -->
-    <div x-show="currentScreen === 'name'" x-cloak class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+    <div x-show="currentScreen === 'name'" x-cloak class="min-h-screen flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-8 compact-padding">
             <!-- Brand Header -->
-            <div class="text-center mb-8">
-                <div class="flex justify-center mb-4">
-                    <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-20 w-20 rounded-full shadow-lg object-cover border-4 border-blue-100">
+            <div class="text-center mb-4 sm:mb-8">
+                <div class="flex justify-center mb-2 sm:mb-4">
+                    <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-14 w-14 sm:h-20 sm:w-20 rounded-full shadow-lg object-cover border-2 sm:border-4 border-blue-100">
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">Mitsui JPY Language School</h1>
+                <h1 class="text-lg sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2 compact-heading">Mitsui JPY Language School</h1>
                 <div class="space-y-1" x-show="!isLoading">
-                    <p class="text-sm text-gray-600 font-medium" x-text="courseName"></p>
-                    <p class="text-xs text-gray-500" x-text="quizPackageName"></p>
+                    <p class="text-xs sm:text-sm text-gray-600 font-medium compact-text" x-text="courseName"></p>
+                    <p class="text-xs text-gray-500 compact-text" x-text="quizPackageName"></p>
                 </div>
                 <!-- Loading state -->
-                <div x-show="isLoading" class="space-y-2">
-                    <p class="text-sm text-gray-500 animate-pulse">Loading quiz...</p>
+                <div x-show="isLoading" class="space-y-1 sm:space-y-2">
+                    <p class="text-xs sm:text-sm text-gray-500 animate-pulse compact-text">Loading quiz...</p>
                 </div>
             </div>
             
-            <!-- Student Name Form -->
-            <form @submit.prevent="startQuiz" class="space-y-6">
+            <!-- Student Phone Number Form -->
+            <form @submit.prevent="verifyPhoneNumber" class="space-y-4 sm:space-y-6 compact-gap">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Student Name</label>
-                    <input type="text" x-model="studentName" required 
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="Enter your full name">
+                    <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 compact-text">Phone Number</label>
+                    <input type="tel" x-model="phoneNumber" required 
+                           class="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-button text-sm sm:text-base"
+                           placeholder="Enter your phone number">
+                    <p class="mt-1 text-xs text-gray-500">Enter the phone number you used to register</p>
                 </div>
                 
                 <!-- Quiz Info - Only show when data is loaded -->
-                <div x-show="!isLoading" class="bg-blue-50 rounded-lg p-4 space-y-2">
-                    <div class="flex justify-between text-sm">
+                <div x-show="!isLoading" class="bg-blue-50 rounded-lg p-3 sm:p-4 space-y-1 sm:space-y-2 compact-gap">
+                    <div class="flex justify-between text-xs sm:text-sm compact-text">
                         <span class="text-gray-600">Total Questions:</span>
                         <span class="font-semibold text-gray-900" x-text="totalQuestions"></span>
                     </div>
-                    <div class="flex justify-between text-sm">
+                    <div class="flex justify-between text-xs sm:text-sm compact-text">
                         <span class="text-gray-600">Time Limit:</span>
                         <span class="font-semibold text-gray-900" x-text="examTime + ' minutes'"></span>
                     </div>
-                    <div class="flex justify-between text-sm">
+                    <div class="flex justify-between text-xs sm:text-sm compact-text">
                         <span class="text-gray-600">Total Points:</span>
                         <span class="font-semibold text-gray-900" x-text="totalPoints"></span>
                     </div>
                 </div>
                 
                 <!-- Loading skeleton -->
-                <div x-show="isLoading" class="bg-blue-50 rounded-lg p-4 space-y-2 animate-pulse">
-                    <div class="flex justify-between text-sm">
+                <div x-show="isLoading" class="bg-blue-50 rounded-lg p-3 sm:p-4 space-y-1 sm:space-y-2 animate-pulse compact-gap">
+                    <div class="flex justify-between text-xs sm:text-sm compact-text">
                         <span class="text-gray-400">Loading quiz info...</span>
                     </div>
                 </div>
                 
                 <button type="submit" :disabled="isLoading" 
-                        class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span x-show="!isLoading">Start Quiz</span>
-                    <span x-show="isLoading">Loading...</span>
+                        class="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed touch-button text-sm sm:text-base">
+                    <span x-show="!isLoading">Verify & Start Quiz</span>
+                    <span x-show="isLoading">Verifying...</span>
                 </button>
             </form>
         </div>
     </div>
     
-    <!-- Device Blocked Screen -->
-    <div x-show="currentScreen === 'blocked'" x-cloak class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+    <!-- Device Blocked Screen - Show Previous Results -->
+    <div x-show="currentScreen === 'blocked'" x-cloak class="min-h-screen flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-2xl w-full p-4 sm:p-8">
             <!-- Brand Header -->
-            <div class="text-center mb-8">
-                <div class="flex justify-center mb-4">
-                    <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-20 w-20 rounded-full shadow-lg object-cover border-4 border-red-100">
+            <div class="text-center mb-4 sm:mb-8">
+                <div class="flex justify-center mb-3 sm:mb-4">
+                    <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-16 w-16 sm:h-20 sm:w-20 rounded-full shadow-lg object-cover border-4 border-blue-100">
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">Mitsui JPY Language School</h1>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Mitsui JPY Language School</h1>
+                <p class="text-xs sm:text-sm text-gray-500">Quiz Already Completed</p>
             </div>
             
-            <!-- Blocked Message -->
-            <div class="text-center space-y-6">
-                <div class="bg-red-50 rounded-lg p-6">
-                    <div class="text-5xl mb-4">🚫</div>
-                    <h2 class="text-xl font-bold text-red-700 mb-3">Quiz Already Taken</h2>
-                    <p class="text-gray-600">
-                        You have already completed this quiz from this device. 
-                        Each student can only take the quiz once per device to ensure fairness.
-                    </p>
-                </div>
-                
-                <!-- Quiz Info -->
-                <div class="bg-gray-50 rounded-lg p-4 text-left space-y-2">
-                    <div class="text-sm text-gray-600">
-                        <strong>Course:</strong> <span x-text="courseName"></span>
-                    </div>
-                    <div class="text-sm text-gray-600">
-                        <strong>Quiz:</strong> <span x-text="quizPackageName"></span>
+            <!-- Info Message -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+                <div class="flex items-start gap-2 sm:gap-3">
+                    <div class="text-2xl sm:text-3xl">ℹ️</div>
+                    <div class="flex-1">
+                        <h3 class="text-sm sm:text-base font-semibold text-blue-900 mb-1">You've Already Taken This Quiz</h3>
+                        <p class="text-xs sm:text-sm text-blue-700">
+                            Here are your previous results. Each student can only take the quiz once per device.
+                        </p>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Student Info -->
+            <div class="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                    <div>
+                        <span class="text-xs sm:text-sm text-gray-600">Student:</span>
+                        <p class="text-sm sm:text-base font-semibold text-gray-900" x-text="studentName"></p>
+                    </div>
+                    <div>
+                        <span class="text-xs sm:text-sm text-gray-600">Course:</span>
+                        <p class="text-sm sm:text-base font-semibold text-gray-900" x-text="courseName"></p>
+                    </div>
+                    <div>
+                        <span class="text-xs sm:text-sm text-gray-600">Quiz:</span>
+                        <p class="text-sm sm:text-base font-semibold text-gray-900" x-text="quizPackageName"></p>
+                    </div>
+                    <div>
+                        <span class="text-xs sm:text-sm text-gray-600">Completed:</span>
+                        <p class="text-sm sm:text-base font-semibold text-gray-900" 
+                           x-text="previousAttempt.completed_at ? new Date(previousAttempt.completed_at).toLocaleDateString() : 'N/A'"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Score Display -->
+            <div class="text-center mb-4 sm:mb-6">
+                <div class="inline-flex items-center justify-center w-24 h-24 sm:w-32 sm:h-32 rounded-full mb-3 sm:mb-4"
+                     :class="{
+                         'bg-green-100': previousAttempt.percentage >= 80,
+                         'bg-blue-100': previousAttempt.percentage >= 60 && previousAttempt.percentage < 80,
+                         'bg-yellow-100': previousAttempt.percentage >= 40 && previousAttempt.percentage < 60,
+                         'bg-red-100': previousAttempt.percentage < 40
+                     }">
+                    <div>
+                        <div class="text-3xl sm:text-4xl font-bold"
+                             :class="{
+                                 'text-green-600': previousAttempt.percentage >= 80,
+                                 'text-blue-600': previousAttempt.percentage >= 60 && previousAttempt.percentage < 80,
+                                 'text-yellow-600': previousAttempt.percentage >= 40 && previousAttempt.percentage < 60,
+                                 'text-red-600': previousAttempt.percentage < 40
+                             }"
+                             x-text="Math.round(previousAttempt.percentage) + '%'"></div>
+                        <div class="text-xs sm:text-sm text-gray-600">Score</div>
+                    </div>
+                </div>
                 
-                <p class="text-sm text-gray-500">
-                    If you believe this is an error, please contact your instructor.
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">Your Previous Results</h2>
+                <p class="text-xs sm:text-sm text-gray-600" 
+                   x-text="`${previousAttempt.score} out of ${previousAttempt.total_points} points`"></p>
+            </div>
+            
+            <!-- Details Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div class="bg-blue-50 rounded-lg p-3 sm:p-4 text-center">
+                    <div class="text-2xl sm:text-3xl font-bold text-blue-600" x-text="previousAttempt.score"></div>
+                    <div class="text-xs sm:text-sm text-gray-600 mt-1">Points Earned</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-3 sm:p-4 text-center">
+                    <div class="text-2xl sm:text-3xl font-bold text-purple-600" x-text="previousAttempt.total_questions"></div>
+                    <div class="text-xs sm:text-sm text-gray-600 mt-1">Total Questions</div>
+                </div>
+                <div class="bg-indigo-50 rounded-lg p-3 sm:p-4 text-center">
+                    <div class="text-2xl sm:text-3xl font-bold text-indigo-600" 
+                         x-text="Math.floor(previousAttempt.time_taken / 60) + ':' + String(previousAttempt.time_taken % 60).padStart(2, '0')"></div>
+                    <div class="text-xs sm:text-sm text-gray-600 mt-1">Time Taken</div>
+                </div>
+            </div>
+            
+            <!-- Performance Badge -->
+            <div class="text-center p-3 sm:p-4 rounded-lg"
+                 :class="{
+                     'bg-green-50': previousAttempt.percentage >= 80,
+                     'bg-blue-50': previousAttempt.percentage >= 60 && previousAttempt.percentage < 80,
+                     'bg-yellow-50': previousAttempt.percentage >= 40 && previousAttempt.percentage < 60,
+                     'bg-red-50': previousAttempt.percentage < 40
+                 }">
+                <p class="text-sm sm:text-base font-semibold"
+                   :class="{
+                       'text-green-700': previousAttempt.percentage >= 80,
+                       'text-blue-700': previousAttempt.percentage >= 60 && previousAttempt.percentage < 80,
+                       'text-yellow-700': previousAttempt.percentage >= 40 && previousAttempt.percentage < 60,
+                       'text-red-700': previousAttempt.percentage < 40
+                   }">
+                    <span x-show="previousAttempt.percentage >= 80">🏆 Excellent Performance!</span>
+                    <span x-show="previousAttempt.percentage >= 60 && previousAttempt.percentage < 80">👍 Good Job!</span>
+                    <span x-show="previousAttempt.percentage >= 40 && previousAttempt.percentage < 60">📚 Keep Practicing!</span>
+                    <span x-show="previousAttempt.percentage < 40">💪 Need More Study!</span>
+                </p>
+            </div>
+            
+            <!-- Footer Note -->
+            <div class="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 text-center">
+                <p class="text-xs sm:text-sm text-gray-500">
+                    If you believe this is an error or need to retake the quiz, please contact your instructor.
                 </p>
             </div>
         </div>
     </div>
     
     <!-- Quiz Screen -->
-    <div x-show="currentScreen === 'quiz'" x-cloak class="min-h-screen py-6 px-4">
+    <div x-show="currentScreen === 'quiz'" x-cloak class="min-h-screen py-2 sm:py-6 px-2 sm:px-4">
         <div class="max-w-3xl mx-auto">
-            <!-- Header with Timer -->
-            <div class="bg-white rounded-xl shadow-lg p-4 mb-6 sticky top-4 z-10">
+            <!-- Header with Timer - Compact for mobile -->
+            <div class="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 mb-3 sm:mb-6 sticky top-1 sm:top-4 z-10">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3 flex-1">
-                        <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-12 w-12 rounded-full object-cover border-2 border-gray-200">
+                    <div class="flex items-center gap-2 sm:gap-3 flex-1">
+                        <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-8 w-8 sm:h-12 sm:w-12 rounded-full object-cover border border-gray-200">
                         <div>
-                            <h2 class="text-lg font-bold text-gray-900" x-text="courseName"></h2>
-                            <p class="text-xs text-gray-500" x-text="studentName"></p>
+                            <h2 class="text-sm sm:text-lg font-bold text-gray-900 compact-heading" x-text="courseName"></h2>
+                            <p class="text-xs text-gray-500 compact-text" x-text="studentName"></p>
                         </div>
                     </div>
-                    <div class="text-center px-4 border-l border-r border-gray-200 mx-4">
-                        <div class="text-2xl font-bold" :class="timeRemaining < 60 ? 'text-red-600' : 'text-blue-600'" x-text="formatTime(timeRemaining)"></div>
-                        <div class="text-xs text-gray-500">Time Left</div>
+                    <div class="text-center px-2 sm:px-4 border-l border-r border-gray-200 mx-2 sm:mx-4">
+                        <div class="text-lg sm:text-2xl font-bold" :class="timeRemaining < 60 ? 'text-red-600' : 'text-blue-600'" x-text="formatTime(timeRemaining)"></div>
+                        <div class="text-xs text-gray-500 compact-text">Time Left</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-gray-900" x-text="(currentQuestionIndex + 1) + '/' + totalQuestions"></div>
-                        <div class="text-xs text-gray-500">Question</div>
+                        <div class="text-lg sm:text-2xl font-bold text-gray-900" x-text="(currentQuestionIndex + 1) + '/' + totalQuestions"></div>
+                        <div class="text-xs text-gray-500 compact-text">Question</div>
                     </div>
                 </div>
                 
                 <!-- Progress Bar -->
-                <div class="mt-4 bg-gray-200 rounded-full h-2">
-                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                <div class="mt-3 sm:mt-4 bg-gray-200 rounded-full h-1.5 sm:h-2">
+                    <div class="bg-blue-600 h-1.5 sm:h-2 rounded-full transition-all duration-300" 
                          :style="`width: ${((currentQuestionIndex + 1) / totalQuestions) * 100}%`"></div>
                 </div>
             </div>
             
-            <!-- Question Card -->
-            <div class="bg-white rounded-xl shadow-lg p-6 mb-6 question-fade">
+            <!-- Question Card - Compact padding for mobile -->
+            <div class="bg-white rounded-lg sm:rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 question-fade">
                 <template x-if="currentQuestion">
                     <div>
-                        <div class="mb-6">
-                            <div class="flex items-start gap-3 mb-4">
-                                <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold" 
+                        <div class="mb-4 sm:mb-6">
+                            <div class="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+                                <span class="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs sm:text-sm font-bold" 
                                       x-text="currentQuestionIndex + 1"></span>
                                 <div class="flex-1">
-                                    <p class="text-lg font-medium text-gray-900" x-text="currentQuestion.question_text"></p>
-                                    <p class="text-sm text-gray-500 mt-1" x-text="currentQuestion.points + ' points'"></p>
+                                    <p class="text-base sm:text-lg font-medium text-gray-900 compact-text" x-text="currentQuestion.question_text"></p>
+                                    <p class="text-xs sm:text-sm text-gray-500 mt-1 compact-text" x-text="currentQuestion.points + ' points'"></p>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Multiple Choice Options -->
-                        <div x-show="currentQuestion.question_type === 'multiple_choice'" class="space-y-3">
+                        <!-- Multiple Choice Options - Compact for mobile -->
+                        <div x-show="currentQuestion.question_type === 'multiple_choice'" class="space-y-2 sm:space-y-3 compact-gap">
                             <template x-for="(option, index) in currentQuestion.options" :key="index">
-                                <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:bg-blue-50"
+                                <label class="flex items-center p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition hover:bg-blue-50 touch-button answer-option"
                                        :class="answers[currentQuestionIndex] === option ? 'border-blue-600 bg-blue-50' : 'border-gray-200'">
                                     <input type="radio" 
                                            :name="'q' + currentQuestionIndex" 
                                            :value="option"
                                            x-model="answers[currentQuestionIndex]"
-                                           class="w-5 h-5 text-blue-600">
-                                    <span class="ml-3 text-gray-900" x-text="option"></span>
+                                           class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600">
+                                    <span class="ml-2 sm:ml-3 text-gray-900 text-sm sm:text-base compact-text" x-text="option"></span>
                                 </label>
                             </template>
                         </div>
                         
-                        <!-- True/False -->
-                        <div x-show="currentQuestion.question_type === 'true_false'" class="space-y-3">
-                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:bg-blue-50"
+                        <!-- True/False - Compact for mobile -->
+                        <div x-show="currentQuestion.question_type === 'true_false'" class="space-y-2 sm:space-y-3 compact-gap">
+                            <label class="flex items-center p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition hover:bg-blue-50 touch-button answer-option"
                                    :class="answers[currentQuestionIndex] === 'True' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'">
-                                <input type="radio" name="trueFalse" value="True" x-model="answers[currentQuestionIndex]" class="w-5 h-5 text-blue-600">
-                                <span class="ml-3 text-gray-900">True</span>
+                                <input type="radio" name="trueFalse" value="True" x-model="answers[currentQuestionIndex]" class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600">
+                                <span class="ml-2 sm:ml-3 text-gray-900 text-sm sm:text-base compact-text">True</span>
                             </label>
-                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:bg-blue-50"
+                            <label class="flex items-center p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition hover:bg-blue-50 touch-button answer-option"
                                    :class="answers[currentQuestionIndex] === 'False' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'">
-                                <input type="radio" name="trueFalse" value="False" x-model="answers[currentQuestionIndex]" class="w-5 h-5 text-blue-600">
-                                <span class="ml-3 text-gray-900">False</span>
+                                <input type="radio" name="trueFalse" value="False" x-model="answers[currentQuestionIndex]" class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600">
+                                <span class="ml-2 sm:ml-3 text-gray-900 text-sm sm:text-base compact-text">False</span>
                             </label>
                         </div>
                         
-                        <!-- Short Answer -->
+                        <!-- Short Answer - Compact for mobile -->
                         <div x-show="currentQuestion.question_type === 'short_answer'">
-                            <textarea x-model="answers[currentQuestionIndex]" rows="4"
-                                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            <textarea x-model="answers[currentQuestionIndex]" rows="3"
+                                      class="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                                       placeholder="Type your answer here..."></textarea>
                         </div>
                     </div>
                 </template>
             </div>
             
-            <!-- Navigation Buttons -->
-            <div class="flex gap-4">
+            <!-- Navigation Buttons - Mobile optimized -->
+            <div class="flex gap-2 sm:gap-4 mb-4 sm:mb-0">
                 <button @click="previousQuestion" 
                         x-show="currentQuestionIndex > 0"
-                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition">
+                        class="px-4 py-2.5 sm:px-6 sm:py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition touch-button text-sm sm:text-base">
                     ← Previous
                 </button>
                 <button @click="nextQuestion" 
                         x-show="currentQuestionIndex < totalQuestions - 1"
-                        class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+                        class="flex-1 px-4 py-2.5 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition touch-button text-sm sm:text-base">
                     Next →
                 </button>
                 <button @click="submitQuiz" 
                         x-show="currentQuestionIndex === totalQuestions - 1"
-                        class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition">
+                        class="flex-1 px-4 py-2.5 sm:px-6 sm:py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition touch-button text-sm sm:text-base">
                     Submit Quiz
                 </button>
             </div>
             
-            <!-- Question Navigator -->
-            <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
-                <h3 class="text-sm font-semibold text-gray-700 mb-4">Question Navigator</h3>
-                <div class="grid grid-cols-5 sm:grid-cols-10 gap-2">
+            <!-- Question Navigator - Hidden on small screens to save space -->
+            <div class="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-6 mt-4 sm:mt-6 hidden sm:block">
+                <h3 class="text-sm font-semibold text-gray-700 mb-3 sm:mb-4 compact-text">Question Navigator</h3>
+                <div class="grid grid-cols-8 sm:grid-cols-10 gap-1 sm:gap-2">
                     <template x-for="(q, index) in questions" :key="index">
                         <button @click="goToQuestion(index)"
-                                class="aspect-square rounded-lg text-sm font-medium transition"
+                                class="aspect-square rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition touch-button"
                                 :class="answers[index] ? 'bg-green-500 text-white' : (index === currentQuestionIndex ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700')"
                                 x-text="index + 1">
                         </button>
@@ -306,53 +410,53 @@
         </div>
     </div>
     
-    <!-- Results Screen -->
-    <div x-show="currentScreen === 'results'" x-cloak class="min-h-screen py-6 px-4">
+    <!-- Results Screen - Mobile optimized -->
+    <div x-show="currentScreen === 'results'" x-cloak class="min-h-screen py-3 sm:py-6 px-2 sm:px-4">
         <div class="max-w-4xl mx-auto">
-            <!-- Results Header -->
-            <div class="bg-white rounded-2xl shadow-2xl overflow-hidden mb-6">
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white text-center">
-                    <div class="flex justify-center mb-4">
-                        <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-20 w-20 rounded-full border-4 border-white shadow-lg object-cover">
+            <!-- Results Header - Compact for mobile -->
+            <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden mb-4 sm:mb-6">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 sm:p-8 text-white text-center">
+                    <div class="flex justify-center mb-2 sm:mb-4">
+                        <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-12 w-12 sm:h-20 sm:w-20 rounded-full border-2 sm:border-4 border-white shadow-lg object-cover">
                     </div>
-                    <h1 class="text-3xl font-bold mb-2">Quiz Completed!</h1>
-                    <p class="text-blue-100" x-text="studentName"></p>
+                    <h1 class="text-xl sm:text-3xl font-bold mb-1 sm:mb-2">Quiz Completed!</h1>
+                    <p class="text-blue-100 text-sm sm:text-base compact-text" x-text="studentName"></p>
                 </div>
                 
-                <!-- Score Card -->
-                <div class="p-8">
-                    <div class="text-center mb-8">
+                <!-- Score Card - Compact for mobile -->
+                <div class="p-4 sm:p-8">
+                    <div class="text-center mb-4 sm:mb-8">
                         <div class="inline-block">
-                            <div class="text-6xl font-bold mb-2" 
+                            <div class="text-4xl sm:text-6xl font-bold mb-1 sm:mb-2" 
                                  :class="results.percentage >= 80 ? 'text-green-600' : (results.percentage >= 60 ? 'text-yellow-600' : 'text-red-600')"
                                  x-text="results.percentage + '%'"></div>
-                            <div class="text-gray-600 text-lg">Your Score</div>
+                            <div class="text-gray-600 text-sm sm:text-lg compact-text">Your Score</div>
                         </div>
                     </div>
                     
-                    <!-- Stats Grid -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                        <div class="bg-blue-50 rounded-xl p-4 text-center">
-                            <div class="text-2xl font-bold text-blue-600" x-text="results.score + '/' + results.totalPoints"></div>
-                            <div class="text-xs text-gray-600 mt-1">Points</div>
+                    <!-- Stats Grid - Compact for mobile -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8">
+                        <div class="bg-blue-50 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+                            <div class="text-lg sm:text-2xl font-bold text-blue-600" x-text="results.score + '/' + results.totalPoints"></div>
+                            <div class="text-xs text-gray-600 mt-1 compact-text">Points</div>
                         </div>
-                        <div class="bg-green-50 rounded-xl p-4 text-center">
-                            <div class="text-2xl font-bold text-green-600" x-text="results.correct"></div>
-                            <div class="text-xs text-gray-600 mt-1">Correct</div>
+                        <div class="bg-green-50 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+                            <div class="text-lg sm:text-2xl font-bold text-green-600" x-text="results.correct"></div>
+                            <div class="text-xs text-gray-600 mt-1 compact-text">Correct</div>
                         </div>
-                        <div class="bg-red-50 rounded-xl p-4 text-center">
-                            <div class="text-2xl font-bold text-red-600" x-text="results.incorrect"></div>
-                            <div class="text-xs text-gray-600 mt-1">Incorrect</div>
+                        <div class="bg-red-50 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+                            <div class="text-lg sm:text-2xl font-bold text-red-600" x-text="results.incorrect"></div>
+                            <div class="text-xs text-gray-600 mt-1 compact-text">Incorrect</div>
                         </div>
-                        <div class="bg-purple-50 rounded-xl p-4 text-center">
-                            <div class="text-2xl font-bold text-purple-600" x-text="formatTime(results.timeTaken)"></div>
-                            <div class="text-xs text-gray-600 mt-1">Time Taken</div>
+                        <div class="bg-purple-50 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+                            <div class="text-lg sm:text-2xl font-bold text-purple-600" x-text="formatTime(results.timeTaken)"></div>
+                            <div class="text-xs text-gray-600 mt-1 compact-text">Time Taken</div>
                         </div>
                     </div>
                     
-                    <!-- Performance Badge -->
-                    <div class="text-center mb-6">
-                        <span class="inline-flex items-center gap-2 px-6 py-3 rounded-full text-lg font-semibold"
+                    <!-- Performance Badge - Compact for mobile -->
+                    <div class="text-center mb-4 sm:mb-6">
+                        <span class="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-full text-sm sm:text-lg font-semibold"
                               :class="results.percentage >= 80 ? 'bg-green-100 text-green-800' : (results.percentage >= 60 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800')">
                             <span x-text="results.percentage >= 80 ? '🌟 Excellent!' : (results.percentage >= 60 ? '👍 Good Job!' : '📚 Keep Practicing!')"></span>
                         </span>
@@ -360,22 +464,22 @@
                 </div>
             </div>
             
-            <!-- Question Review -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-6">Answer Review</h2>
-                <div class="space-y-4">
+            <!-- Question Review - Compact for mobile -->
+            <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
+                <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 compact-heading">Answer Review</h2>
+                <div class="space-y-3 sm:space-y-4 compact-gap">
                     <template x-for="(question, index) in questions" :key="index">
-                        <div class="border rounded-lg p-4"
+                        <div class="border rounded-lg p-3 sm:p-4"
                              :class="results.details[index].isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'">
-                            <div class="flex items-start gap-3">
-                                <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold"
+                            <div class="flex items-start gap-2 sm:gap-3">
+                                <div class="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold"
                                      :class="results.details[index].isCorrect ? 'bg-green-600 text-white' : 'bg-red-600 text-white'">
                                     <span x-show="results.details[index].isCorrect">✓</span>
                                     <span x-show="!results.details[index].isCorrect">✗</span>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="font-medium text-gray-900 mb-2" x-text="'Q' + (index + 1) + ': ' + question.question_text"></p>
-                                    <div class="text-sm space-y-1">
+                                    <p class="font-medium text-gray-900 mb-2 text-sm sm:text-base compact-text" x-text="'Q' + (index + 1) + ': ' + question.question_text"></p>
+                                    <div class="text-xs sm:text-sm space-y-1 compact-text">
                                         <div>
                                             <span class="text-gray-600">Your Answer:</span>
                                             <span class="font-medium ml-1" 
@@ -388,7 +492,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="text-sm font-semibold"
+                                <div class="text-xs sm:text-sm font-semibold"
                                      :class="results.details[index].isCorrect ? 'text-green-700' : 'text-red-700'"
                                      x-text="results.details[index].pointsEarned + '/' + question.points"></div>
                             </div>
@@ -397,12 +501,12 @@
                 </div>
             </div>
             
-            <!-- Action Buttons -->
-            <div class="mt-6 flex gap-4">
-                <button @click="printResults" class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+            <!-- Action Buttons - Mobile optimized -->
+            <div class="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <button @click="printResults" class="flex-1 px-4 py-2.5 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition touch-button text-sm sm:text-base">
                     📄 Print Results
                 </button>
-                <button @click="restartQuiz" class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition">
+                <button @click="restartQuiz" class="flex-1 px-4 py-2.5 sm:px-6 sm:py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition touch-button text-sm sm:text-base">
                     🔄 Retake Quiz
                 </button>
             </div>
@@ -411,6 +515,6 @@
     
 </div>
 
-<script src="/static/js/quiz.js?v=5.0"></script>
+<script src="/static/js/quiz.js?v=5.3"></script>
 </body>
 </html>

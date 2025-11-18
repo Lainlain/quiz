@@ -34,6 +34,7 @@ func Migrate() error {
 		&models.Question{},
 		&models.Attempt{},
 		&models.Answer{},
+		&models.Enrollment{},
 	)
 
 	if err != nil {

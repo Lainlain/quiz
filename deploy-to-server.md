@@ -229,15 +229,15 @@ Then report the issue so we can fix it.
 Before contacting support, verify:
 
 - [ ] Ran `git pull origin main` on server
-- [ ] Rebuilt with `go build -o bin/quiz-server cmd/server/main.go`
+- [ ] Rebuilt with `go build -o bin/quiz-server cmd/server/main.go` (REQUIRED - Go code changed in v5.3)
 - [ ] Restarted server with `systemctl restart quizserver`
 - [ ] Cleared browser cache with `Ctrl+Shift+R`
-- [ ] Checked JavaScript version is `4.5` in Network tab
+- [ ] Checked JavaScript version is `5.3` in Network tab
 - [ ] Checked console for error messages (F12)
 - [ ] Verified .env file exists with correct database path
 
 ---
 
-**Last Updated:** 2025-10-07 00:30  
-**Current Version:** v4.5  
-**Status:** ✅ Fixed loading state and timer issues
+**Last Updated:** 2025-10-07  
+**Current Version:** v5.3 (Show previous quiz results when blocked)  
+**Status:** ✅ Fixed loading state, timer, modals, question navigation, mobile optimization, and show previous results

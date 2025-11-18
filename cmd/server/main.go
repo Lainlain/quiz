@@ -47,6 +47,7 @@ func main() {
 	router.GET("/admin", func(c *gin.Context) {
 		c.Redirect(302, "/admin/login")
 	})
+	router.GET("/register/:courseId", webHandler.RegisterPage)
 
 	// Public quiz route
 	router.GET("/quiz", webHandler.QuizPage)
@@ -61,6 +62,10 @@ func main() {
 		public.POST("/auth/admin/login", authHandler.AdminLogin)
 		public.POST("/auth/student/login", authHandler.StudentLogin)
 		public.POST("/auth/student/register", authHandler.StudentRegister)
+		
+		// Public course registration
+		public.POST("/register/course/:courseId", authHandler.RegisterForCourse)
+		public.GET("/register/check/:courseId", authHandler.CheckRegistrationStatus)
 
 		// Public quiz data endpoints (for public quiz page and dashboard)
 		public.GET("/student/courses", courseHandler.GetCourses)
@@ -71,6 +76,7 @@ func main() {
 		// Public quiz submission (no auth required)
 		public.POST("/quiz/submit", studentHandler.SubmitPublicQuiz)
 		public.GET("/quiz/check-device", studentHandler.CheckDeviceEligibility)
+		public.GET("/quiz/check-phone", authHandler.CheckPhoneNumberForQuiz)
 	}
 
 	// Admin routes (requires auth + admin role)
@@ -93,6 +99,16 @@ func main() {
 		admin.POST("/questions", questionHandler.CreateQuestion)
 		admin.PUT("/questions/:id", questionHandler.UpdateQuestion)
 		admin.DELETE("/questions/:id", questionHandler.DeleteQuestion)
+
+		// Student management
+		admin.GET("/students", studentHandler.ListStudents)
+		admin.GET("/students/courses", studentHandler.GetCoursesWithStudentCount)
+		admin.GET("/students/course/:courseId", studentHandler.GetStudentsByCourse)
+		admin.DELETE("/students/:id", studentHandler.DeleteStudent)
+		
+		// Enrollment management
+		admin.GET("/enrollments/course/:courseId", studentHandler.GetEnrollmentsByCourse)
+		admin.PUT("/enrollments/:enrollmentId/status", studentHandler.UpdateEnrollmentStatus)
 	}
 
 	// Student routes (requires auth)

@@ -88,6 +88,8 @@ function quizApp() {
         
         // Student info
         studentName: '',
+        phoneNumber: '',
+        studentId: null,
         deviceId: '',
         
         // Loading state
@@ -101,8 +103,18 @@ function quizApp() {
             message: ''
         },
         
+        // Previous attempt data (for blocked screen)
+        previousAttempt: {
+            score: 0,
+            total_points: 0,
+            time_taken: 0,
+            completed_at: null,
+            total_questions: 0,
+            percentage: 0
+        },
+        
         // Quiz state
-        currentScreen: 'name', // 'name', 'quiz', 'results'
+        currentScreen: 'name', // 'name', 'quiz', 'results', 'blocked'
         questions: [],
         currentQuestionIndex: 0,
         answers: [],
@@ -171,7 +183,9 @@ function quizApp() {
                 const data = await response.json();
                 
                 if (data.already_taken) {
-                    this.showModal('warning', 'Already Taken', 'You have already taken this quiz from this device. Each student can only take the quiz once per device.');
+                    // Store previous attempt data
+                    this.previousAttempt = data.previous_attempt || {};
+                    this.studentName = data.student_name || '';
                     this.currentScreen = 'blocked';
                 } else if (data.student_name) {
                     // Auto-fill student name from previous quiz on this device
@@ -258,13 +272,51 @@ function quizApp() {
             return this.questions.reduce((sum, q) => sum + q.points, 0);
         },
         
-        // Start quiz
-        startQuiz() {
-            if (!this.studentName.trim()) {
-                this.showModal('warning', 'Name Required', 'Please enter your name to start the quiz.');
+        // Verify phone number before starting quiz
+        async verifyPhoneNumber() {
+            if (!this.phoneNumber.trim()) {
+                this.showModal('warning', 'Phone Number Required', 'Please enter your phone number to continue.');
                 return;
             }
             
+            try {
+                this.isLoading = true;
+                
+                // Check if phone number is approved for this course
+                const response = await fetch(`/api/quiz/check-phone?course_id=${this.courseId}&phone_number=${encodeURIComponent(this.phoneNumber)}`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    this.showModal('error', 'Error', data.error || 'Failed to verify phone number. Please try again.');
+                    this.isLoading = false;
+                    return;
+                }
+                
+                if (!data.approved) {
+                    // Not approved - show error message
+                    this.showModal('error', 'Not Registered', data.message || 'You are not registered for this course.');
+                    this.isLoading = false;
+                    return;
+                }
+                
+                // Approved - save student info and start quiz
+                this.studentId = data.student_id;
+                this.studentName = data.student_name;
+                
+                console.log('Phone number verified. Student:', this.studentName);
+                
+                this.isLoading = false;
+                this.startQuiz();
+                
+            } catch (error) {
+                console.error('Error verifying phone number:', error);
+                this.showModal('error', 'Verification Failed', 'Failed to verify your phone number. Please check your connection and try again.');
+                this.isLoading = false;
+            }
+        },
+        
+        // Start quiz
+        startQuiz() {
             // Validate exam time
             if (!this.examTime || this.examTime <= 0) {
                 this.showModal('error', 'Configuration Error', 'Invalid exam time detected. Please contact the administrator.');
@@ -317,6 +369,13 @@ function quizApp() {
         
         // Navigation
         nextQuestion() {
+            // Check if current question is answered
+            const currentAnswer = this.answers[this.currentQuestionIndex];
+            if (currentAnswer == null || currentAnswer === '') {
+                this.showModal('warning', 'Question Not Answered', 
+                    `Question ${this.currentQuestionIndex + 1} has no answer selected. Please select an answer or you can skip it and come back later.`);
+            }
+            
             if (this.currentQuestionIndex < this.totalQuestions - 1) {
                 this.currentQuestionIndex++;
             }
@@ -332,9 +391,26 @@ function quizApp() {
             this.currentQuestionIndex = index;
         },
         
+        // Helper to count unanswered questions
+        get unansweredCount() {
+            return this.answers.filter(a => a == null || a === '').length;
+        },
+        
         // Submit quiz
         async submitQuiz() {
-            if (!confirm('Are you sure you want to submit your quiz? You cannot change your answers after submission.')) {
+            // Check for unanswered questions first
+            const unansweredCount = this.unansweredCount;
+            
+            if (unansweredCount > 0) {
+                this.showModal('warning', 'Unanswered Questions', 
+                    `You have ${unansweredCount} unanswered question${unansweredCount > 1 ? 's' : ''}. These will be marked as incorrect. Are you sure you want to submit?`);
+                
+                // Wait for modal confirmation - for now just show warning and continue
+                // User can still cancel by clicking outside or close button
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+            
+            if (!confirm('Final confirmation: Submit your quiz now? You cannot change answers after submission.')) {
                 return;
             }
             

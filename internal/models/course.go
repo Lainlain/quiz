@@ -20,6 +20,7 @@ type Course struct {
 	IsActive     bool   `gorm:"default:true" json:"is_active"`
 
 	QuizPackages []QuizPackage `gorm:"foreignKey:CourseID" json:"quiz_packages,omitempty"`
+	Enrollments  []Enrollment  `gorm:"foreignKey:CourseID" json:"enrollments,omitempty"`
 }
 
 // TableName specifies the table name for Course model

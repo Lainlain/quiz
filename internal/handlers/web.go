@@ -32,3 +32,10 @@ func (h *WebHandler) QuizPage(c *gin.Context) {
 		"Title": "Quiz Exam",
 	})
 }
+
+// Public Course Registration Page
+func (h *WebHandler) RegisterPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "register.html", gin.H{
+		"Title": "Course Registration",
+	})
+}

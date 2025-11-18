@@ -1,0 +1,299 @@
+{{define "register.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Registration - Mitsui JPY Language School</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        @keyframes bounce-in {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-bounce-in {
+            animation: bounce-in 0.3s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-3 py-4" x-data="registrationForm()">
+        <!-- Error Modal/Dialog -->
+        <div x-show="showErrorModal" 
+             x-cloak
+             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+             @click.self="showErrorModal = false">
+            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-4 animate-bounce-in">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <h3 class="ml-3 text-base font-semibold text-gray-900">Registration Error</h3>
+                    </div>
+                    <button @click="showErrorModal = false" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <p class="text-sm text-gray-700 mb-2" x-text="modalErrorMessage"></p>
+                    <div x-show="errorType === 'phone_duplicate'" class="text-xs text-gray-600 bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
+                        <p class="font-semibold mb-1">📱 Phone Number Already Registered</p>
+                        <p>If this is your phone number, your registration is already pending approval. You will be redirected to the status page in <span x-text="countdown"></span> seconds.</p>
+                    </div>
+                </div>
+                <button @click="showErrorModal = false" 
+                        class="w-full bg-red-600 text-white py-2 px-4 rounded text-sm font-medium hover:bg-red-700 transition">
+                    Close
+                </button>
+            </div>
+        </div>
+
+        <div class="max-w-md mx-auto">
+            <!-- Logo and Header -->
+            <div class="text-center mb-4">
+                <img src="/static/logo.jpg" alt="Mitsui JPY" class="h-16 mx-auto mb-2">
+                <h1 class="text-xl font-bold text-gray-900 mb-1">Course Registration</h1>
+                <p class="text-sm text-gray-600" x-text="courseName">Loading...</p>
+            </div>
+
+            <!-- Registration Form -->
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <form @submit.prevent="submitRegistration" x-show="!submitted">
+                    <div class="space-y-3">
+                        <!-- Name -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">
+                                Full Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" x-model="formData.name" required
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+
+                        <!-- Email -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">
+                                Email Address <span class="text-red-500">*</span>
+                            </label>
+                            <input type="email" x-model="formData.email" required
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+
+                        <!-- Phone Number -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">
+                                Phone Number <span class="text-red-500">*</span>
+                            </label>
+                            <input type="tel" x-model="formData.phone_number" required
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+
+                        <!-- Address -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">
+                                Address <span class="text-red-500">*</span>
+                            </label>
+                            <textarea x-model="formData.address" required rows="2"
+                                      class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"></textarea>
+                        </div>
+
+                        <!-- Facebook URL (Optional) -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">
+                                Facebook URL <span class="text-gray-500 text-xs">(Optional)</span>
+                            </label>
+                            <input type="url" x-model="formData.facebook_url"
+                                   placeholder="https://facebook.com/yourprofile"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+
+                        <!-- Error Message -->
+                        <div x-show="error" class="p-3 bg-red-50 border-2 border-red-300 rounded-lg shadow-sm">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-semibold text-red-800 mb-1">Registration Error</h4>
+                                    <p class="text-sm text-red-700" x-text="error"></p>
+                                    <p x-show="errorType === 'phone_duplicate'" class="text-xs text-red-600 mt-2 bg-red-100 p-2 rounded">
+                                        💡 <strong>Tip:</strong> If this is your phone number, your registration is already pending. Please wait for admin approval or contact support.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" :disabled="loading"
+                                class="w-full bg-blue-600 text-white py-2 px-4 rounded font-medium text-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span x-show="!loading">Register Now</span>
+                            <span x-show="loading">Processing...</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Success/Status Message -->
+                <div x-show="submitted" class="text-center py-4">
+                    <!-- Pending Status -->
+                    <div x-show="!enrollmentStatus || enrollmentStatus === 'pending'">
+                        <svg class="w-12 h-12 mx-auto text-yellow-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h2 class="text-lg font-bold text-gray-900 mb-1">Registration Pending</h2>
+                        <p class="text-sm text-gray-600 mb-2">Your registration has been submitted successfully.</p>
+                        <p class="text-xs text-gray-500 bg-yellow-50 border border-yellow-200 rounded p-2">
+                            <strong>⏳ Waiting for Admin Approval</strong><br>
+                            You will receive a notification once your registration is approved.
+                        </p>
+                    </div>
+
+                    <!-- Approved Status -->
+                    <div x-show="enrollmentStatus === 'approved'">
+                        <svg class="w-12 h-12 mx-auto text-green-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h2 class="text-lg font-bold text-green-900 mb-1">Registration Approved! ✅</h2>
+                        <p class="text-sm text-gray-600 mb-2">Your registration has been approved by the admin.</p>
+                        <p class="text-xs text-green-700 bg-green-50 border border-green-200 rounded p-2">
+                            <strong>🎉 You can now access the course!</strong><br>
+                            Please login to start your learning journey.
+                        </p>
+                    </div>
+
+                    <!-- Declined Status -->
+                    <div x-show="enrollmentStatus === 'declined'">
+                        <svg class="w-12 h-12 mx-auto text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h2 class="text-lg font-bold text-red-900 mb-1">Registration Declined ❌</h2>
+                        <p class="text-sm text-gray-600 mb-2">Your registration was not approved.</p>
+                        <p class="text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
+                            <strong>Please contact the school admin for more information.</strong><br>
+                            Phone: [School Contact Number]
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function registrationForm() {
+            return {
+                courseId: window.location.pathname.split('/').pop(),
+                courseName: 'Loading...',
+                loading: false,
+                submitted: false,
+                enrollmentStatus: '', // pending, approved, declined
+                error: '',
+                errorType: '',
+                showErrorModal: false,
+                modalErrorMessage: '',
+                countdown: 5,
+                formData: {
+                    name: '',
+                    email: '',
+                    phone_number: '',
+                    address: '',
+                    facebook_url: ''
+                },
+
+                async init() {
+                    await this.loadCourseInfo();
+                },
+
+                async loadCourseInfo() {
+                    try {
+                        const response = await fetch(`/api/student/courses/${this.courseId}`);
+                        if (response.ok) {
+                            const course = await response.json();
+                            this.courseName = course.title;
+                        }
+                    } catch (error) {
+                        console.error('Failed to load course info:', error);
+                    }
+                },
+
+                async submitRegistration() {
+                    this.loading = true;
+                    this.error = '';
+                    this.errorType = '';
+
+                    try {
+                        const response = await fetch(`/api/register/course/${this.courseId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(this.formData)
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            this.submitted = true;
+                            this.enrollmentStatus = data.status || 'pending';
+                        } else {
+                            // Set error message
+                            this.error = data.error || 'Registration failed. Please try again.';
+                            this.modalErrorMessage = this.error;
+                            
+                            // Check if it's a phone number duplicate error (pending or approved)
+                            if (data.already_registered || this.error.includes('phone number') || this.error.includes('already registered')) {
+                                this.errorType = 'phone_duplicate';
+                                this.showErrorModal = true;
+                                
+                                // Set the status from response
+                                this.enrollmentStatus = data.status || 'pending';
+                                
+                                // Start countdown
+                                this.countdown = 5;
+                                const countdownInterval = setInterval(() => {
+                                    this.countdown--;
+                                    if (this.countdown <= 0) {
+                                        clearInterval(countdownInterval);
+                                    }
+                                }, 1000);
+                                
+                                // Auto-switch to submitted view after 5 seconds
+                                setTimeout(() => {
+                                    this.showErrorModal = false;
+                                    this.submitted = true;
+                                    this.error = '';
+                                }, 5000);
+                            } else if (this.error.includes('email')) {
+                                this.errorType = 'email_duplicate';
+                                this.showErrorModal = true;
+                            } else {
+                                this.errorType = 'general';
+                                this.showErrorModal = true;
+                            }
+                            
+                            // Also scroll to inline error message
+                            setTimeout(() => {
+                                const errorElement = document.querySelector('[x-show="error"]');
+                                if (errorElement) {
+                                    errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                            }, 100);
+                        }
+                    } catch (error) {
+                        this.error = 'Network error. Please check your connection and try again.';
+                        this.errorType = 'network';
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+{{end}}

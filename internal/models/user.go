@@ -19,10 +19,13 @@ type User struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Email    string   `gorm:"unique;not null" json:"email"`
-	Password string   `gorm:"not null" json:"-"`
-	Name     string   `gorm:"not null" json:"name"`
-	Role     UserRole `gorm:"type:varchar(20);not null" json:"role"`
+	Email       string   `gorm:"unique;not null" json:"email"`
+	Password    string   `gorm:"not null" json:"-"`
+	Name        string   `gorm:"not null" json:"name"`
+	PhoneNumber string   `gorm:"type:varchar(20);unique;not null" json:"phone_number"`
+	Address     string   `gorm:"type:text" json:"address"`
+	FacebookURL string   `gorm:"type:varchar(255)" json:"facebook_url"`
+	Role        UserRole `gorm:"type:varchar(20);not null" json:"role"`
 
 	// For students
 	Attempts []Attempt `gorm:"foreignKey:StudentID" json:"attempts,omitempty"`
