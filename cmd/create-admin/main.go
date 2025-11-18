@@ -43,10 +43,11 @@ func main() {
 
 	// Create admin user
 	admin := models.User{
-		Email:    "admin@mitsui-jpy.com",
-		Password: hashedPassword,
-		Name:     "Admin User",
-		Role:     models.RoleAdmin,
+		Email:       "admin@mitsui-jpy.com",
+		Password:    hashedPassword,
+		Name:        "Admin User",
+		PhoneNumber: "0000000000",
+		Role:        models.RoleAdmin,
 	}
 
 	if err := database.DB.Create(&admin).Error; err != nil {
@@ -57,5 +58,6 @@ func main() {
 	fmt.Println("\nLogin credentials:")
 	fmt.Println("Email: admin@mitsui-jpy.com")
 	fmt.Println("Password: admin123")
+	fmt.Println("Phone: 0000000000 (admin default)")
 	fmt.Println("\n⚠️  Please change the password after first login!")
 }
