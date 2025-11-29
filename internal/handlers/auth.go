@@ -168,7 +168,7 @@ type CourseRegistrationRequest struct {
 // RegisterForCourse - Public endpoint for course registration
 func (h *AuthHandler) RegisterForCourse(c *gin.Context) {
 	courseID := c.Param("courseId")
-	
+
 	var req CourseRegistrationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -196,38 +196,38 @@ func (h *AuthHandler) RegisterForCourse(c *gin.Context) {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update registration"})
 					return
 				}
-				
+
 				c.JSON(http.StatusCreated, gin.H{
 					"message": "Registration submitted successfully! Waiting for admin approval.",
 					"status":  "pending",
 				})
 				return
 			}
-			
+
 			// Already registered with pending or approved status
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "This phone number is already registered for this course",
+				"error":              "This phone number is already registered for this course",
 				"already_registered": true,
-				"status": existingEnrollment.Status,
+				"status":             existingEnrollment.Status,
 			})
 			return
 		}
-		
+
 		// User exists but not enrolled, create enrollment
 		enrollment := models.Enrollment{
 			StudentID: existingUserByPhone.ID,
 			CourseID:  course.ID,
 			Status:    models.EnrollmentPending,
 		}
-		
+
 		if err := database.DB.Create(&enrollment).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register for course"})
 			return
 		}
-		
+
 		c.JSON(http.StatusCreated, gin.H{
-			"message": "Registration submitted successfully! Waiting for admin approval.",
-			"status":  "pending",
+			"message":            "Registration submitted successfully! Waiting for admin approval.",
+			"status":             "pending",
 			"already_registered": true,
 		})
 		return
@@ -355,6 +355,7 @@ func (h *AuthHandler) CheckRegistrationStatus(c *gin.Context) {
 func (h *AuthHandler) CheckPhoneNumberForQuiz(c *gin.Context) {
 	courseID := c.Query("course_id")
 	phoneNumber := c.Query("phone_number")
+	quizPackageID := c.Query("quiz_package_id")
 
 	if phoneNumber == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Phone number is required"})
@@ -409,11 +410,49 @@ func (h *AuthHandler) CheckPhoneNumberForQuiz(c *gin.Context) {
 		return
 	}
 
-	// User is approved to take the quiz
-	c.JSON(http.StatusOK, gin.H{
+	// Check retake limit if quiz package ID is provided
+	response := gin.H{
 		"approved":     true,
 		"student_id":   user.ID,
 		"student_name": user.Name,
 		"message":      "You are approved to take this quiz.",
-	})
+	}
+
+	if quizPackageID != "" {
+		// Get quiz package to check max retake count
+		var quizPackage models.QuizPackage
+		if err := database.DB.First(&quizPackage, quizPackageID).Error; err == nil {
+			// Count previous attempts for this student and quiz package
+			var attemptCount int64
+			database.DB.Model(&models.Attempt{}).Where(
+				"student_id = ? AND course_id = ? AND quiz_package_id = ?",
+				user.ID, courseID, quizPackageID,
+			).Count(&attemptCount)
+
+			maxRetakes := quizPackage.MaxRetakeCount
+			if maxRetakes == 0 {
+				maxRetakes = 1 // Default fallback
+			}
+
+			// Add retake information to response
+			response["retake_info"] = gin.H{
+				"current_attempts": int(attemptCount),
+				"max_retakes":      maxRetakes,
+				"attempts_remaining": maxRetakes - int(attemptCount),
+				"quiz_package_name": quizPackage.Title,
+			}
+
+			// Check if retake limit exceeded
+			if int(attemptCount) >= maxRetakes {
+				response["approved"] = false
+				response["retake_limit_reached"] = true
+				response["message"] = "You have reached the maximum number of retakes for this quiz."
+			} else if int(attemptCount) > 0 {
+				remaining := maxRetakes - int(attemptCount)
+				response["message"] = fmt.Sprintf("You have %d attempt(s) remaining for this quiz.", remaining)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }

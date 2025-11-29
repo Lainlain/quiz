@@ -23,6 +23,12 @@ func (h *QuizPackageHandler) CreateQuizPackage(c *gin.Context) {
 		return
 	}
 
+	// Validate max retake count
+	if quizPackage.MaxRetakeCount < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Max retake count must be at least 1"})
+		return
+	}
+
 	// Verify course exists
 	var course models.Course
 	if err := database.DB.First(&course, quizPackage.CourseID).Error; err != nil {
@@ -63,6 +69,12 @@ func (h *QuizPackageHandler) UpdateQuizPackage(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&quizPackage); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate max retake count
+	if quizPackage.MaxRetakeCount < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Max retake count must be at least 1"})
 		return
 	}
 

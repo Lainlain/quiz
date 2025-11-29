@@ -152,6 +152,29 @@
                     </div>
                 </div>
                 
+                <!-- Retake Status Display - Show after phone verification -->
+                <div x-show="retakeInfo && studentName" class="bg-yellow-50 border-l-4 border-yellow-400 p-3 sm:p-4 compact-gap">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-xs sm:text-sm font-medium text-yellow-800 compact-text">Quiz Attempt Status</h3>
+                            <div class="mt-1 text-xs text-yellow-700 compact-text">
+                                <p x-show="retakeInfo && retakeInfo.current_attempts === 0">
+                                    This is your first attempt. You have <strong x-text="retakeInfo.max_retakes"></strong> total attempt(s) allowed.
+                                </p>
+                                <p x-show="retakeInfo && retakeInfo.current_attempts > 0">
+                                    You have taken this quiz <strong x-text="retakeInfo.current_attempts"></strong> time(s). 
+                                    <span x-text="retakeInfo.attempts_remaining"></span> attempt(s) remaining.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Loading skeleton -->
                 <div x-show="isLoading" class="bg-blue-50 rounded-lg p-3 sm:p-4 space-y-1 sm:space-y-2 animate-pulse compact-gap">
                     <div class="flex justify-between text-xs sm:text-sm compact-text">
@@ -334,6 +357,19 @@
                                     <p class="text-xs sm:text-sm text-gray-500 mt-1 compact-text" x-text="currentQuestion.points + ' points'"></p>
                                 </div>
                             </div>
+                            
+                            <!-- Question Image (if exists) -->
+                            <template x-if="currentQuestion && currentQuestion.image_url && currentQuestion.image_url.trim() !== ''">
+                                <div class="mt-4 sm:mt-6">
+                                    <div class="text-center">
+                                        <img :src="currentQuestion.image_url" 
+                                             :alt="'Question ' + (currentQuestionIndex + 1) + ' image'"
+                                             class="max-w-full max-h-96 mx-auto rounded-lg shadow-lg border border-gray-200"
+                                             style="object-fit: contain;">
+                                    </div>
+                                    <p class="text-center text-xs text-gray-500 mt-2">Question Image</p>
+                                </div>
+                            </template>
                         </div>
                         
                         <!-- Multiple Choice Options - Compact for mobile -->

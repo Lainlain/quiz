@@ -1,81 +1,3 @@
-// Device Fingerprinting Function
-async function generateDeviceFingerprint() {
-    const components = [];
-    
-    // Screen information
-    components.push(screen.width);
-    components.push(screen.height);
-    components.push(screen.colorDepth);
-    
-    // Timezone
-    components.push(Intl.DateTimeFormat().resolvedOptions().timeZone);
-    
-    // Language
-    components.push(navigator.language);
-    
-    // Platform
-    components.push(navigator.platform);
-    
-    // Hardware concurrency
-    components.push(navigator.hardwareConcurrency || 'unknown');
-    
-    // User agent
-    components.push(navigator.userAgent);
-    
-    // Canvas fingerprint
-    try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.textBaseline = 'top';
-        ctx.font = '14px Arial';
-        ctx.fillStyle = '#f60';
-        ctx.fillRect(125, 1, 62, 20);
-        ctx.fillStyle = '#069';
-        ctx.fillText('Mitsui JPY Quiz', 2, 15);
-        components.push(canvas.toDataURL());
-    } catch (e) {
-        components.push('canvas-error');
-    }
-    
-    // WebGL fingerprint (without deprecated API)
-    try {
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        if (gl) {
-            components.push(gl.getParameter(gl.VENDOR) || 'unknown-vendor');
-            components.push(gl.getParameter(gl.RENDERER) || 'unknown-renderer');
-        }
-    } catch (e) {
-        components.push('webgl-error');
-    }
-    
-    // Generate hash from components
-    const fingerprint = components.join('|');
-    
-    // Use crypto.subtle if available (HTTPS), otherwise use simple hash (HTTP)
-    if (window.crypto && window.crypto.subtle && window.isSecureContext) {
-        try {
-            const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
-            const hashArray = Array.from(new Uint8Array(hash));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex;
-        } catch (e) {
-            console.warn('crypto.subtle failed, using fallback hash');
-        }
-    }
-    
-    // Fallback: Simple hash function for HTTP environments
-    let hash = 0;
-    for (let i = 0; i < fingerprint.length; i++) {
-        const char = fingerprint.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-    }
-    // Convert to hex and pad to look like SHA-256 (64 chars)
-    const simpleHash = Math.abs(hash).toString(16).padStart(16, '0');
-    return simpleHash.repeat(4).substring(0, 64);
-}
-
 // Quiz Application Alpine.js Component
 function quizApp() {
     return {
@@ -90,7 +12,7 @@ function quizApp() {
         studentName: '',
         phoneNumber: '',
         studentId: null,
-        deviceId: '',
+        retakeInfo: null, // Contains current_attempts, max_retakes, attempts_remaining, quiz_package_name
         
         // Loading state
         isLoading: true,
@@ -147,10 +69,6 @@ function quizApp() {
         // Initialize
         async init() {
             try {
-                // Generate device fingerprint
-                this.deviceId = await generateDeviceFingerprint();
-                console.log('Device ID:', this.deviceId);
-                
                 // Get quiz package ID from URL
                 const urlParams = new URLSearchParams(window.location.search);
                 this.quizPackageId = parseInt(urlParams.get('package'));
@@ -163,9 +81,6 @@ function quizApp() {
                 
                 await this.loadQuizData();
                 
-                // Check if device already took this quiz
-                await this.checkDeviceEligibility();
-                
                 // Data loaded, hide loading state
                 this.isLoading = false;
                 console.log('Quiz initialization complete');
@@ -173,28 +88,6 @@ function quizApp() {
                 console.error('Initialization error:', error);
                 this.isLoading = false;
                 this.showModal('error', 'Loading Failed', 'Failed to load quiz. Please refresh the page and try again.');
-            }
-        },
-        
-        // Check if device is eligible to take this quiz
-        async checkDeviceEligibility() {
-            try {
-                const response = await fetch(`/api/quiz/check-device?quiz_package_id=${this.quizPackageId}&device_id=${this.deviceId}`);
-                const data = await response.json();
-                
-                if (data.already_taken) {
-                    // Store previous attempt data
-                    this.previousAttempt = data.previous_attempt || {};
-                    this.studentName = data.student_name || '';
-                    this.currentScreen = 'blocked';
-                } else if (data.student_name) {
-                    // Auto-fill student name from previous quiz on this device
-                    this.studentName = data.student_name;
-                    console.log('Auto-filled student name:', this.studentName);
-                }
-            } catch (error) {
-                console.error('Error checking device eligibility:', error);
-                // Continue anyway if check fails
             }
         },
         
@@ -239,7 +132,7 @@ function quizApp() {
                 // Initialize answers array
                 this.answers = new Array(this.questions.length).fill(null);
                 
-                // Parse options for multiple choice questions
+                // Parse options for multiple choice questions and log image info
                 this.questions = this.questions.map(q => {
                     if (q.question_type === 'multiple_choice' && typeof q.options === 'string') {
                         try {
@@ -248,6 +141,12 @@ function quizApp() {
                             q.options = [];
                         }
                     }
+                    
+                    // Log image URLs for debugging
+                    if (q.image_url) {
+                        console.log(`Question ${q.id}: "${q.question_text}" has image: ${q.image_url}`);
+                    }
+                    
                     return q;
                 });
                 
@@ -282,8 +181,8 @@ function quizApp() {
             try {
                 this.isLoading = true;
                 
-                // Check if phone number is approved for this course
-                const response = await fetch(`/api/quiz/check-phone?course_id=${this.courseId}&phone_number=${encodeURIComponent(this.phoneNumber)}`);
+                // Check if phone number is approved for this course and quiz package
+                const response = await fetch(`/api/quiz/check-phone?course_id=${this.courseId}&phone_number=${encodeURIComponent(this.phoneNumber)}&quiz_package_id=${this.quizPackageId}`);
                 const data = await response.json();
                 
                 if (!response.ok) {
@@ -293,17 +192,28 @@ function quizApp() {
                 }
                 
                 if (!data.approved) {
-                    // Not approved - show error message
-                    this.showModal('error', 'Not Registered', data.message || 'You are not registered for this course.');
+                    // Check if it's a retake limit issue
+                    if (data.retake_limit_reached) {
+                        const retakeInfo = data.retake_info;
+                        this.showModal('error', 'Quiz Retake Limit Reached', 
+                            `You have already taken this quiz ${retakeInfo.current_attempts} time(s), which is the maximum allowed (${retakeInfo.max_retakes}). No more attempts are permitted.`);
+                    } else {
+                        // Other approval issues (not registered, pending, declined, etc.)
+                        this.showModal('error', 'Not Approved', data.message || 'You are not approved to take this quiz.');
+                    }
                     this.isLoading = false;
                     return;
                 }
                 
-                // Approved - save student info and start quiz
+                // Approved - save student info and retake information
                 this.studentId = data.student_id;
                 this.studentName = data.student_name;
+                this.retakeInfo = data.retake_info || null;
                 
                 console.log('Phone number verified. Student:', this.studentName);
+                if (this.retakeInfo) {
+                    console.log('Retake info:', this.retakeInfo);
+                }
                 
                 this.isLoading = false;
                 this.startQuiz();
@@ -465,11 +375,17 @@ function quizApp() {
         // Save attempt to backend
         async saveAttempt() {
             try {
+                // For registered students, we use a different API endpoint
+                // This requires the student to be verified via phone first
+                if (!this.studentId) {
+                    this.showModal('error', 'Student Not Verified', 'Please enter your phone number first to take this quiz.');
+                    return;
+                }
+                
                 const payload = {
-                    student_name: this.studentName,
+                    student_id: this.studentId,
                     course_id: this.courseId,
                     quiz_package_id: this.quizPackageId,
-                    device_id: this.deviceId,
                     score: this.results.score,
                     total_points: this.results.totalPoints,
                     time_taken: this.results.timeTaken,
@@ -481,9 +397,7 @@ function quizApp() {
                     }))
                 };
                 
-                console.log('Submitting quiz with payload:', payload);
-                
-                const response = await fetch('/api/quiz/submit', {
+                const response = await fetch('/api/student/quiz/submit-registered', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -491,25 +405,18 @@ function quizApp() {
                     body: JSON.stringify(payload)
                 });
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Attempt saved successfully:', data);
-                } else if (response.status === 403) {
-                    // Retry limit reached
-                    const error = await response.json();
-                    this.showModal('error', 'Retry Limit Reached', error.message || 'You have already taken this quiz 3 times. No more attempts allowed.');
-                } else {
-                    const error = await response.json();
-                    console.error('Failed to save attempt:', error);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to save quiz results');
                 }
+                
+                const data = await response.json();
+                console.log('Quiz results saved successfully:', data);
+                
             } catch (error) {
                 console.error('Error saving attempt:', error);
+                this.showModal('error', 'Save Failed', 'Failed to save your quiz results: ' + error.message);
             }
-        },
-        
-        // Print results
-        printResults() {
-            window.print();
         },
         
         // Restart quiz

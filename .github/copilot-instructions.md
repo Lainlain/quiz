@@ -2,28 +2,35 @@
 
 ## Project Overview
 
-A RESTful API server for quiz examination system built for Mitsui JPY Language School. The system supports admin course management and student quiz-taking with JWT authentication, retry limits, and comprehensive attempt tracking.
+A comprehensive quiz examination system for Mitsui JPY Language School with **dual frontends**: 
+1. **Web application** (HTML/CSS/JS) for public quiz taking and admin management
+2. **Android mobile app** (Kotlin/Jetpack Compose) for student quiz access
+3. **REST API backend** (Go/Gin) serving both frontends
 
 ## Architecture
 
-### Three-Layer Architecture
-1. **Handlers** (`internal/handlers/`) - HTTP request handlers and business logic
-2. **Models** (`internal/models/`) - GORM database models with relationships
-3. **Middleware** (`internal/middleware/`) - JWT authentication and authorization
+### Multi-Platform Architecture
+```
+Web Frontend (public quiz + admin) ──┐
+                                    ├── REST API (Go/Gin) ── SQLite Database
+Android Mobile App (Kotlin) ────────┘
+```
 
-### Data Flow
-```
-Client → Gin Router → Middleware (JWT Auth) → Handler → Database (GORM) → SQLite
-```
+### Three-Layer Backend
+1. **Handlers** (`internal/handlers/`) - HTTP handlers + business logic + web template serving
+2. **Models** (`internal/models/`) - GORM models with phone number validation and device tracking  
+3. **Middleware** (`internal/middleware/`) - JWT auth + CORS for mobile app
 
 ### Key Design Decisions
-- **JWT-based authentication**: Stateless auth with role-based access (admin/student)
-- **GORM with SQLite**: Easy development; production-ready for PostgreSQL/MySQL swap
-- **Attempt tracking**: Enforces retry limits per course, tracks timing and scoring
-- **Gin framework**: Fast, minimal HTTP framework with built-in validation
+- **Dual auth modes**: JWT for mobile app, session-based for web admin dashboard
+- **Device fingerprinting**: SHA-256 hashed device ID prevents multiple attempts per device
+- **Public quiz access**: No authentication required for quiz taking (guest users auto-created)
+- **Phone number verification**: Required field prevents duplicate registrations across devices
+- **Image uploads**: File upload system for question images with validation
 
 ## Development Workflow
 
+### Backend Development
 ```bash
 # Install dependencies
 go mod download
@@ -31,14 +38,33 @@ go mod download
 # Create admin user (first time only)
 go run cmd/create-admin/main.go
 
-# Run the server
+# Run the server (serves both API and web templates)
 go run cmd/server/main.go
 
 # Build binary
 go build -o bin/quiz-server cmd/server/main.go
 
+# Test admin login specifically
+go run cmd/test-admin-login/main.go
+
+# Run integration tests
+./test-quiz-submit.sh
+./test-create-attempt.sh
+```
+
+### Mobile App Development
+```bash
+# Navigate to mobile app
+cd mobile_app
+
+# Build using Gradle
+./gradlew assembleDebug
+
 # Run tests
-go test ./...
+./gradlew test
+
+# Install on device/emulator via Android Studio
+# or use build.sh script
 ```
 
 ### Environment Setup
@@ -48,30 +74,49 @@ Copy `.env.example` to `.env` and configure:
 - `JWT_SECRET` (MUST change in production)
 - `JWT_EXPIRE_HOURS` (default: 24)
 
+### Key URLs
+- Admin Dashboard: `http://localhost:8080/admin/dashboard`
+- Public Quiz: `http://localhost:8080/quiz?package=1` 
+- Course Registration: `http://localhost:8080/register/1`
+
 ## Project Structure Conventions
 
 ### Directory Layout
-- `cmd/` - Application entry points (`server/main.go`, `create-admin/main.go`)
+- `cmd/` - Application entry points (`server/main.go`, `create-admin/main.go`, `test-admin-login/main.go`)
 - `internal/` - Private application code (cannot be imported by other projects)
-  - `handlers/` - HTTP handlers for each domain (auth, course, student, etc.)
-  - `models/` - Database models with GORM tags
+  - `handlers/` - HTTP handlers for each domain (auth, course, student, web templates, image uploads)
+  - `models/` - Database models with GORM tags (includes phone_number field)
   - `middleware/` - Gin middleware (AuthMiddleware, AdminOnly)
   - `database/` - Database connection and migration logic
 - `pkg/` - Reusable utility packages (jwt, password hashing)
 - `config/` - Configuration loading from environment
+- `web/` - Frontend assets and templates
+  - `templates/` - HTML templates for admin dashboard and public quiz
+  - `static/` - CSS, JS, images
+  - `uploads/` - File uploads (question images)
+- `mobile_app/` - Complete Android app (Kotlin + Jetpack Compose)
 
 ### Model Relationships
 ```
 Course 1→N QuizPackage 1→N Question
 User(Student) 1→N Attempt N→1 Course, QuizPackage
 Attempt 1→N Answer N→1 Question
+User.PhoneNumber → Unique constraint (prevents duplicate registrations)
+Attempt.DeviceID → SHA-256 device fingerprint (prevents multiple attempts per device)
 ```
 
 ### Authentication Pattern
-All protected routes require:
+**Protected Routes (Admin/Student):**
 ```go
 router.Use(middleware.AuthMiddleware(cfg))  // JWT validation
 router.Use(middleware.AdminOnly())          // Admin role check (for admin routes)
+```
+
+**Public Routes (Quiz Taking):**
+```go
+// No auth middleware - guest users auto-created
+public.POST("/quiz/submit", studentHandler.SubmitPublicQuiz)
+public.GET("/quiz/check-device", studentHandler.CheckDeviceEligibility)
 ```
 
 Token is passed via: `Authorization: Bearer <JWT_TOKEN>`
@@ -82,16 +127,26 @@ Token is passed via: `Authorization: Bearer <JWT_TOKEN>`
 - `POST /auth/admin/login` - Admin login
 - `POST /auth/student/login` - Student login  
 - `POST /auth/student/register` - Student registration
+- `POST /quiz/submit` - Public quiz submission (no auth)
+- `GET /quiz/check-device` - Device eligibility check
+- `POST /register/course/:courseId` - Course registration with phone verification
 
 ### Admin Routes (`/api/admin/`) - Requires JWT + admin role
-- Courses: `POST /courses`, `PUT /courses/:id`, `DELETE /courses/:id`
+- Courses: `POST /courses`, `PUT /courses/:id`, `DELETE /courses/:id`, `GET /courses/:id/stats`
 - Quiz Packages: `POST /quiz-packages`, `PUT /quiz-packages/:id`, `DELETE /quiz-packages/:id`
 - Questions: `POST /questions`, `PUT /questions/:id`, `DELETE /questions/:id`
+- Images: `POST /upload-image` - Question image uploads
 
 ### Student Routes (`/api/student/`) - Requires JWT
 - Browse: `GET /courses`, `GET /courses/:id`, `GET /quiz-packages/:id`
 - Quiz: `POST /quiz/start`, `POST /quiz/answer`, `POST /quiz/complete/:attemptId`
 - History: `GET /attempts`, `GET /attempts/:attemptId`
+
+### Web Routes (HTML Templates)
+- `/admin/login` - Admin login page
+- `/admin/dashboard` - Admin management interface
+- `/quiz?package=X` - Public quiz taking interface
+- `/register/:courseId` - Course registration form
 
 ## Key Implementation Details
 
@@ -106,6 +161,19 @@ Each course has three critical settings:
 2. **Answer**: `POST /student/quiz/answer` saves/updates `Answer` records
 3. **Complete**: `POST /student/quiz/complete/:attemptId` calculates score, sets status to completed
 
+### Public Quiz Flow (No Auth)
+1. **Load**: `GET /quiz?package=X` loads quiz with device fingerprinting
+2. **Check**: `GET /quiz/check-device` validates device hasn't taken quiz (3 attempt limit)
+3. **Submit**: `POST /quiz/submit` creates guest user and attempt record
+
+### Device Restriction
+Device fingerprinting prevents multiple attempts:
+```javascript
+// Generates SHA-256 hash from screen, timezone, canvas, WebGL, etc.
+const deviceId = await generateDeviceFingerprint();
+```
+Backend stores `device_id` in attempts table and enforces 3-attempt limit per device+quiz combination.
+
 ### Retry Logic
 Before creating attempt, handler counts existing attempts:
 ```go
@@ -118,6 +186,20 @@ if int(attemptCount) >= course.RetryCount {
   return error "Maximum retry count reached"
 }
 ```
+
+### Phone Number Validation
+Users table requires unique phone numbers:
+```go
+PhoneNumber string `gorm:"type:varchar(20);unique;not null" json:"phone_number"`
+```
+Registration checks phone uniqueness across devices and prevents duplicate course registrations.
+
+### Image Upload System
+Questions support image attachments via `POST /admin/upload-image`:
+- Max 5MB file size
+- Validates image formats (JPEG, PNG, GIF, WebP)
+- Saves to `web/uploads/questions/` with timestamp prefix
+- Returns image URL for question association
 
 ### Password Security
 - Passwords hashed with bcrypt (cost: 10)
@@ -181,4 +263,4 @@ Full examples in `README.md`.
 
 ---
 
-**Last Updated**: 2025-10-06
+**Last Updated**: 2025-11-29

@@ -32,6 +32,7 @@ func main() {
 
 	// Serve static files
 	router.Static("/static", "./web/static")
+	router.Static("/uploads", "./web/uploads")
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(cfg)
@@ -40,6 +41,7 @@ func main() {
 	questionHandler := handlers.NewQuestionHandler()
 	studentHandler := handlers.NewStudentHandler()
 	webHandler := handlers.NewWebHandler()
+	imageHandler := handlers.NewImageHandler()
 
 	// Web routes (HTML pages)
 	router.GET("/admin/login", webHandler.AdminLoginPage)
@@ -62,7 +64,7 @@ func main() {
 		public.POST("/auth/admin/login", authHandler.AdminLogin)
 		public.POST("/auth/student/login", authHandler.StudentLogin)
 		public.POST("/auth/student/register", authHandler.StudentRegister)
-		
+
 		// Public course registration
 		public.POST("/register/course/:courseId", authHandler.RegisterForCourse)
 		public.GET("/register/check/:courseId", authHandler.CheckRegistrationStatus)
@@ -77,6 +79,7 @@ func main() {
 		public.POST("/quiz/submit", studentHandler.SubmitPublicQuiz)
 		public.GET("/quiz/check-device", studentHandler.CheckDeviceEligibility)
 		public.GET("/quiz/check-phone", authHandler.CheckPhoneNumberForQuiz)
+		public.POST("/student/quiz/submit-registered", studentHandler.SubmitRegisteredStudentQuiz)
 	}
 
 	// Admin routes (requires auth + admin role)
@@ -100,12 +103,16 @@ func main() {
 		admin.PUT("/questions/:id", questionHandler.UpdateQuestion)
 		admin.DELETE("/questions/:id", questionHandler.DeleteQuestion)
 
+		// Image upload
+		admin.POST("/upload/image", imageHandler.UploadImage)
+		admin.DELETE("/upload/image/:filename", imageHandler.DeleteImage)
+
 		// Student management
 		admin.GET("/students", studentHandler.ListStudents)
 		admin.GET("/students/courses", studentHandler.GetCoursesWithStudentCount)
 		admin.GET("/students/course/:courseId", studentHandler.GetStudentsByCourse)
 		admin.DELETE("/students/:id", studentHandler.DeleteStudent)
-		
+
 		// Enrollment management
 		admin.GET("/enrollments/course/:courseId", studentHandler.GetEnrollmentsByCourse)
 		admin.PUT("/enrollments/:enrollmentId/status", studentHandler.UpdateEnrollmentStatus)

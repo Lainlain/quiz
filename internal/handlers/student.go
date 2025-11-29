@@ -61,8 +61,18 @@ func (h *StudentHandler) StartQuiz(c *gin.Context) {
 		studentID, req.CourseID, req.QuizPackageID,
 	).Count(&attemptCount)
 
-	if int(attemptCount) >= course.RetryCount {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Maximum retry count reached"})
+	// Check against quiz package's max retake count
+	maxRetakes := quizPackage.MaxRetakeCount
+	if maxRetakes == 0 {
+		maxRetakes = 1 // Default fallback
+	}
+	
+	if int(attemptCount) >= maxRetakes {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Maximum retake limit reached for this quiz package",
+			"max_retakes": maxRetakes,
+			"current_attempts": int(attemptCount),
+		})
 		return
 	}
 
@@ -254,187 +264,22 @@ type PublicQuizSubmission struct {
 }
 
 func (h *StudentHandler) SubmitPublicQuiz(c *gin.Context) {
-	var req PublicQuizSubmission
-	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Printf("Validation error: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	log.Printf("Received quiz submission: Name=%s, CourseID=%d, QuizPackageID=%d, DeviceID=%s, Score=%d, Answers=%d",
-		req.StudentName, req.CourseID, req.QuizPackageID, req.DeviceID, req.Score, len(req.Answers))
-
-	// Validate course and quiz package exist
-	var course models.Course
-	if err := database.DB.First(&course, req.CourseID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Course not found"})
-		return
-	}
-
-	var quizPackage models.QuizPackage
-	if err := database.DB.First(&quizPackage, req.QuizPackageID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Quiz package not found"})
-		return
-	}
-
-	// Check retry limit (3 attempts max per device per quiz package)
-	if req.DeviceID != "" {
-		var attemptCount int64
-		database.DB.Model(&models.Attempt{}).Where(
-			"device_id = ? AND quiz_package_id = ? AND status = ?",
-			req.DeviceID, req.QuizPackageID, models.StatusCompleted,
-		).Count(&attemptCount)
-
-		if attemptCount >= 3 {
-			c.JSON(http.StatusForbidden, gin.H{
-				"error":   "Maximum retry limit reached",
-				"message": "You have already taken this quiz 3 times. No more attempts allowed.",
-			})
-			return
-		}
-	}
-
-	// Create or find a guest user for this student name
-	var guestUser models.User
-	email := "guest_" + strings.ToLower(strings.ReplaceAll(req.StudentName, " ", "_")) + "@guest.local"
-
-	result := database.DB.Where("email = ?", email).First(&guestUser)
-	if result.Error != nil {
-		// Create new guest user
-		guestUser = models.User{
-			Email:    email,
-			Password: "no-password-guest-user", // Guest users can't login
-			Name:     req.StudentName,
-			Role:     models.RoleStudent,
-		}
-		if err := database.DB.Create(&guestUser).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create guest user"})
-			return
-		}
-	}
-
-	// Create attempt record
-	now := time.Now()
-	endTime := now.Add(time.Duration(req.TimeTaken) * time.Second)
-
-	attempt := models.Attempt{
-		StudentID:     guestUser.ID,
-		CourseID:      req.CourseID,
-		QuizPackageID: req.QuizPackageID,
-		DeviceID:      req.DeviceID,
-		Status:        models.StatusCompleted,
-		StartTime:     now,
-		EndTime:       &endTime,
-		Score:         req.Score,
-		TotalPoints:   req.TotalPoints,
-		AttemptCount:  1,
-	}
-
-	if err := database.DB.Create(&attempt).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create attempt record"})
-		return
-	}
-
-	// Save answers
-	for _, ans := range req.Answers {
-		answer := models.Answer{
-			AttemptID:     attempt.ID,
-			QuestionID:    ans.QuestionID,
-			StudentAnswer: ans.UserAnswer,
-			IsCorrect:     ans.IsCorrect,
-			PointsEarned:  ans.PointsEarned,
-		}
-		database.DB.Create(&answer)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message":    "Quiz submitted successfully",
-		"attempt_id": attempt.ID,
-		"score":      req.Score,
-		"percentage": float64(req.Score) / float64(req.TotalPoints) * 100,
+	// This endpoint is deprecated - all quiz submissions now require phone verification
+	// Redirect to the registered student endpoint
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": "Phone verification required",
+		"message": "Please verify your phone number before taking the quiz. Use the phone verification button on the quiz page.",
+		"redirect": "/api/student/quiz/submit-registered",
 	})
 }
 
-// CheckDeviceEligibility checks if a device has already taken the quiz
+// CheckDeviceEligibility is deprecated - phone verification is now used instead
 func (h *StudentHandler) CheckDeviceEligibility(c *gin.Context) {
-	quizPackageID := c.Query("quiz_package_id")
-	deviceID := c.Query("device_id")
-
-	if quizPackageID == "" || deviceID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required parameters"})
-		return
-	}
-
-	// Check if this device has already submitted any quiz (not just this package)
-	var attempt models.Attempt
-	var studentName string
-
-	// First check if device took THIS specific quiz
-	err := database.DB.Where("quiz_package_id = ? AND device_id = ? AND status = ?",
-		quizPackageID, deviceID, models.StatusCompleted).
-		First(&attempt).Error
-
-	alreadyTakenThisQuiz := err == nil
-
-	// Prepare response
-	response := gin.H{
-		"already_taken": alreadyTakenThisQuiz,
-		"student_name":  "",
-	}
-
-	// If already taken this quiz, include the results
-	if alreadyTakenThisQuiz {
-		// Get student name
-		var user models.User
-		if err := database.DB.First(&user, attempt.StudentID).Error; err == nil {
-			studentName = user.Name
-			response["student_name"] = studentName
-		}
-
-		// Load answers count
-		var answersCount int64
-		database.DB.Model(&models.Answer{}).Where("attempt_id = ?", attempt.ID).Count(&answersCount)
-
-		// Calculate time taken in seconds
-		var timeTaken int
-		if attempt.EndTime != nil {
-			timeTaken = int(attempt.EndTime.Sub(attempt.StartTime).Seconds())
-		}
-
-		// Calculate percentage
-		percentage := float64(0)
-		if attempt.TotalPoints > 0 {
-			percentage = float64(attempt.Score) / float64(attempt.TotalPoints) * 100
-		}
-
-		// Include previous attempt results
-		response["previous_attempt"] = gin.H{
-			"score":           attempt.Score,
-			"total_points":    attempt.TotalPoints,
-			"time_taken":      timeTaken,
-			"completed_at":    attempt.EndTime,
-			"total_questions": answersCount,
-			"percentage":      percentage,
-		}
-	} else {
-		// Get student name from any previous attempt on this device
-		err = database.DB.Where("device_id = ? AND status = ?", deviceID, models.StatusCompleted).
-			Order("created_at DESC").
-			First(&attempt).Error
-
-		if err == nil {
-			// Get student name from user record
-			var user models.User
-			if err := database.DB.First(&user, attempt.StudentID).Error; err == nil {
-				studentName = user.Name
-				response["student_name"] = studentName
-			}
-		}
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": "Device checking disabled",
+		"message": "Please use phone verification instead. This endpoint is no longer supported.",
+	})
 }
-
 // Get Total Student Count (Admin only)
 func (h *StudentHandler) GetTotalStudentCount(c *gin.Context) {
 	// Count all unique students (users with role 'student')
@@ -476,8 +321,8 @@ func (h *StudentHandler) GetCoursesWithStudentCount(c *gin.Context) {
 	}
 
 	type Response struct {
-		TotalStudents int                       `json:"total_students"`
-		Courses       []CourseWithStudentCount  `json:"courses"`
+		TotalStudents int                      `json:"total_students"`
+		Courses       []CourseWithStudentCount `json:"courses"`
 	}
 
 	var coursesData []CourseWithStudentCount
@@ -554,7 +399,7 @@ func (h *StudentHandler) GetStudentsByCourse(c *gin.Context) {
 	}
 
 	studentMap := make(map[uint]*StudentCourseStats)
-	
+
 	// Get all unique student IDs from attempts
 	studentIDs := make(map[uint]bool)
 	for _, attempt := range attempts {
@@ -567,7 +412,7 @@ func (h *StudentHandler) GetStudentsByCourse(c *gin.Context) {
 	for id := range studentIDs {
 		studentIDList = append(studentIDList, id)
 	}
-	
+
 	if len(studentIDList) > 0 {
 		database.DB.Where("id IN ?", studentIDList).Find(&students)
 	}
@@ -763,5 +608,128 @@ func (h *StudentHandler) UpdateEnrollmentStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Enrollment status updated successfully",
 		"status":  req.Status,
+	})
+}
+
+// RegisteredStudentQuizSubmission for phone-verified students
+type RegisteredStudentQuizSubmission struct {
+	StudentID     uint   `json:"student_id" binding:"required"`
+	CourseID      uint   `json:"course_id" binding:"required"`
+	QuizPackageID uint   `json:"quiz_package_id" binding:"required"`
+	Score         int    `json:"score" binding:"min=0"`        // Allow 0 scores
+	TotalPoints   int    `json:"total_points" binding:"required"`
+	TimeTaken     int    `json:"time_taken"` // in seconds
+	Answers       []struct {
+		QuestionID   uint   `json:"question_id"`
+		UserAnswer   string `json:"user_answer"`
+		IsCorrect    bool   `json:"is_correct"`
+		PointsEarned int    `json:"points_earned"`
+	} `json:"answers"`
+}
+
+func (h *StudentHandler) SubmitRegisteredStudentQuiz(c *gin.Context) {
+	var req RegisteredStudentQuizSubmission
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("Validation error: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Printf("Received registered student quiz submission: StudentID=%d, CourseID=%d, QuizPackageID=%d, Score=%d, Answers=%d",
+		req.StudentID, req.CourseID, req.QuizPackageID, req.Score, len(req.Answers))
+
+	// Verify student exists
+	var student models.User
+	if err := database.DB.First(&student, req.StudentID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Student not found"})
+		return
+	}
+
+	// Validate course and quiz package exist
+	var course models.Course
+	if err := database.DB.First(&course, req.CourseID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Course not found"})
+		return
+	}
+
+	var quizPackage models.QuizPackage
+	if err := database.DB.First(&quizPackage, req.QuizPackageID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Quiz package not found"})
+		return
+	}
+
+	// Check retry limit using quiz package's max retake count per student
+	var attemptCount int64
+	database.DB.Model(&models.Attempt{}).Where(
+		"student_id = ? AND quiz_package_id = ? AND status = ?",
+		req.StudentID, req.QuizPackageID, models.StatusCompleted,
+	).Count(&attemptCount)
+
+	maxRetakes := quizPackage.MaxRetakeCount
+	if maxRetakes == 0 {
+		maxRetakes = 1 // Default fallback
+	}
+
+	if int(attemptCount) >= maxRetakes {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error":           "Maximum retry limit reached",
+			"message":         "You have already taken this quiz the maximum number of times allowed.",
+			"max_retakes":     maxRetakes,
+			"current_attempts": int(attemptCount),
+		})
+		return
+	}
+
+	// Create attempt record (no device ID)
+	now := time.Now()
+	endTime := now.Add(time.Duration(req.TimeTaken) * time.Second)
+
+	attempt := models.Attempt{
+		StudentID:     req.StudentID,
+		CourseID:      req.CourseID,
+		QuizPackageID: req.QuizPackageID,
+		DeviceID:      "", // No device ID for registered students
+		Status:        models.StatusCompleted,
+		StartTime:     now,
+		EndTime:       &endTime,
+		Score:         req.Score,
+		TotalPoints:   req.TotalPoints,
+		AttemptCount:  int(attemptCount) + 1,
+	}
+
+	if err := database.DB.Create(&attempt).Error; err != nil {
+		log.Printf("Error creating attempt: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create attempt record"})
+		return
+	}
+
+	log.Printf("Created attempt with ID: %d", attempt.ID)
+
+	// Save individual answers
+	for _, answerData := range req.Answers {
+		answer := models.Answer{
+			AttemptID:     attempt.ID,
+			QuestionID:    answerData.QuestionID,
+			StudentAnswer: answerData.UserAnswer,
+			IsCorrect:     answerData.IsCorrect,
+			PointsEarned:  answerData.PointsEarned,
+		}
+		if err := database.DB.Create(&answer).Error; err != nil {
+			log.Printf("Warning: Failed to save answer for question %d: %v", answerData.QuestionID, err)
+		}
+	}
+
+	log.Printf("Quiz submission completed successfully for student %d", req.StudentID)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Quiz submitted successfully",
+		"attempt_id": attempt.ID,
+		"score":      req.Score,
+		"percentage": float64(req.Score) / float64(req.TotalPoints) * 100,
+		"retake_info": gin.H{
+			"current_attempts":   int(attemptCount) + 1,
+			"max_retakes":        maxRetakes,
+			"attempts_remaining": maxRetakes - int(attemptCount) - 1,
+		},
 	})
 }

@@ -23,6 +23,18 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 		return
 	}
 
+	// Validate that points are manually set (greater than 0)
+	if question.Points <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Points must be manually set (minimum 1 point)"})
+		return
+	}
+
+	// Validate points range (1-100)
+	if question.Points > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Points cannot exceed 100"})
+		return
+	}
+
 	// Verify quiz package exists
 	var quizPackage models.QuizPackage
 	if err := database.DB.First(&quizPackage, question.QuizPackageID).Error; err != nil {
@@ -65,6 +77,18 @@ func (h *QuestionHandler) UpdateQuestion(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&question); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate that points are manually set (greater than 0)
+	if question.Points <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Points must be manually set (minimum 1 point)"})
+		return
+	}
+
+	// Validate points range (1-100)
+	if question.Points > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Points cannot exceed 100"})
 		return
 	}
 

@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		fmt.Println("❌ Admin user not found!")
 		fmt.Println("Creating new admin user...")
-		
+
 		// Hash password
 		hashedPassword, err := utils.HashPassword("admin123")
 		if err != nil {
@@ -49,13 +49,13 @@ func main() {
 		fmt.Println("✅ Admin user created successfully!")
 	} else {
 		fmt.Println("Admin user found. Updating...")
-		
+
 		// Update phone number if empty
 		if admin.PhoneNumber == "" {
 			admin.PhoneNumber = "0000000000"
 			fmt.Println("→ Adding phone number: 0000000000")
 		}
-		
+
 		// Reset password to admin123
 		hashedPassword, err := utils.HashPassword("admin123")
 		if err != nil {
@@ -63,12 +63,12 @@ func main() {
 		}
 		admin.Password = hashedPassword
 		fmt.Println("→ Resetting password to: admin123")
-		
+
 		// Save changes
 		if err := database.DB.Save(&admin).Error; err != nil {
 			log.Fatal("Failed to update admin:", err)
 		}
-		
+
 		fmt.Println("✅ Admin user updated successfully!")
 	}
 
