@@ -2,10 +2,10 @@ package main
 
 import (
 	"log"
-	"mitsui-jpy-quiz/config"
-	"mitsui-jpy-quiz/internal/database"
-	"mitsui-jpy-quiz/internal/handlers"
-	"mitsui-jpy-quiz/internal/middleware"
+	"mitsuki-jpy-quiz/config"
+	"mitsuki-jpy-quiz/internal/database"
+	"mitsuki-jpy-quiz/internal/handlers"
+	"mitsuki-jpy-quiz/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )

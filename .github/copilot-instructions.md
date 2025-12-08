@@ -1,32 +1,33 @@
-# Copilot Instructions - Mitsui JPY Language School Quiz API
+# Copilot Instructions - Mitsuki JPY Language School Quiz API
 
 ## Project Overview
 
-A comprehensive quiz examination system for Mitsui JPY Language School with **dual frontends**: 
-1. **Web application** (HTML/CSS/JS) for public quiz taking and admin management
-2. **Android mobile app** (Kotlin/Jetpack Compose) for student quiz access
-3. **REST API backend** (Go/Gin) serving both frontends
+A comprehensive quiz examination system for Mitsuki JPY Language School with **web-first architecture**:
+1. **Public quiz interface** (HTML/CSS/JS + Alpine.js) for guest quiz taking with device fingerprinting
+2. **Admin dashboard** (HTML templates + Tailwind CSS) for course/question management
+3. **Course registration system** with phone number verification
+4. **REST API backend** (Go/Gin/GORM) with SQLite database
 
 ## Architecture
 
-### Multi-Platform Architecture
+### Web-Centric Architecture
 ```
-Web Frontend (public quiz + admin) ──┐
-                                    ├── REST API (Go/Gin) ── SQLite Database
-Android Mobile App (Kotlin) ────────┘
+Public Quiz (Alpine.js + Tailwind) ──┐
+Admin Dashboard (HTML + JS) ─────────├── REST API (Go/Gin) ── SQLite Database
+Course Registration Forms ───────────┘
 ```
 
 ### Three-Layer Backend
-1. **Handlers** (`internal/handlers/`) - HTTP handlers + business logic + web template serving
-2. **Models** (`internal/models/`) - GORM models with phone number validation and device tracking  
-3. **Middleware** (`internal/middleware/`) - JWT auth + CORS for mobile app
+1. **Handlers** (`internal/handlers/`) - HTTP handlers + business logic + HTML template serving
+2. **Models** (`internal/models/`) - GORM models with phone validation + device tracking + enrollment system
+3. **Middleware** (`internal/middleware/`) - JWT auth + admin role enforcement
 
 ### Key Design Decisions
-- **Dual auth modes**: JWT for mobile app, session-based for web admin dashboard
-- **Device fingerprinting**: SHA-256 hashed device ID prevents multiple attempts per device
-- **Public quiz access**: No authentication required for quiz taking (guest users auto-created)
-- **Phone number verification**: Required field prevents duplicate registrations across devices
-- **Image uploads**: File upload system for question images with validation
+- **Mixed auth modes**: JWT for admin API access, public/guest access for quiz taking
+- **Device fingerprinting**: SHA-256 hashed device ID prevents multiple quiz attempts per device (3 max)
+- **Phone-based registration**: Required unique phone numbers prevent duplicate registrations
+- **File upload system**: Question images saved to `web/uploads/questions/` with timestamp prefixes
+- **Mobile-first responsive design**: Tailwind CSS with `sm:` breakpoints for desktop enhancement
 
 ## Development Workflow
 
@@ -52,20 +53,11 @@ go run cmd/test-admin-login/main.go
 ./test-create-attempt.sh
 ```
 
-### Mobile App Development
-```bash
-# Navigate to mobile app
-cd mobile_app
-
-# Build using Gradle
-./gradlew assembleDebug
-
-# Run tests
-./gradlew test
-
-# Install on device/emulator via Android Studio
-# or use build.sh script
-```
+### Frontend Development (Alpine.js + Tailwind)
+- **Public quiz**: `web/templates/public/quiz.html` with Alpine.js reactive components
+- **Admin dashboard**: `web/templates/admin/dashboard.html` with vanilla JS
+- **Mobile-first styling**: Tailwind classes with `sm:` prefix for desktop enhancement
+- **Static assets**: Served from `web/static/` (CSS, JS, images)
 
 ### Environment Setup
 Copy `.env.example` to `.env` and configure:
@@ -94,7 +86,6 @@ Copy `.env.example` to `.env` and configure:
   - `templates/` - HTML templates for admin dashboard and public quiz
   - `static/` - CSS, JS, images
   - `uploads/` - File uploads (question images)
-- `mobile_app/` - Complete Android app (Kotlin + Jetpack Compose)
 
 ### Model Relationships
 ```
@@ -135,7 +126,7 @@ Token is passed via: `Authorization: Bearer <JWT_TOKEN>`
 - Courses: `POST /courses`, `PUT /courses/:id`, `DELETE /courses/:id`, `GET /courses/:id/stats`
 - Quiz Packages: `POST /quiz-packages`, `PUT /quiz-packages/:id`, `DELETE /quiz-packages/:id`
 - Questions: `POST /questions`, `PUT /questions/:id`, `DELETE /questions/:id`
-- Images: `POST /upload-image` - Question image uploads
+- Images: `POST /upload/image` - Question image uploads
 
 ### Student Routes (`/api/student/`) - Requires JWT
 - Browse: `GET /courses`, `GET /courses/:id`, `GET /quiz-packages/:id`
@@ -222,7 +213,7 @@ Auto-migration runs on server startup via `database.Migrate()` in `cmd/server/ma
 
 ### Initial Admin User
 Run `go run cmd/create-admin/main.go` to create:
-- Email: `admin@mitsui-jpy.com`
+- Email: `admin@mitsuki-jpy.com`
 - Password: `admin123` (change in production!)
 
 ### Database File
@@ -250,7 +241,7 @@ Use `curl` or Postman to test endpoints. Example workflow:
 # 1. Admin login
 curl -X POST http://localhost:8080/api/auth/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@mitsui-jpy.com","password":"admin123"}'
+  -d '{"email":"admin@mitsuki-jpy.com","password":"admin123"}'
 
 # 2. Create course (use token from step 1)
 curl -X POST http://localhost:8080/api/admin/courses \
@@ -263,4 +254,4 @@ Full examples in `README.md`.
 
 ---
 
-**Last Updated**: 2025-11-29
+**Last Updated**: 2025-11-30

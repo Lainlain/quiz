@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"log"
-	"mitsui-jpy-quiz/internal/database"
-	"mitsui-jpy-quiz/internal/models"
+	"mitsuki-jpy-quiz/internal/database"
+	"mitsuki-jpy-quiz/internal/models"
 	"net/http"
 	"strconv"
 	"strings"
@@ -66,11 +66,11 @@ func (h *StudentHandler) StartQuiz(c *gin.Context) {
 	if maxRetakes == 0 {
 		maxRetakes = 1 // Default fallback
 	}
-	
+
 	if int(attemptCount) >= maxRetakes {
 		c.JSON(http.StatusForbidden, gin.H{
-			"error": "Maximum retake limit reached for this quiz package",
-			"max_retakes": maxRetakes,
+			"error":            "Maximum retake limit reached for this quiz package",
+			"max_retakes":      maxRetakes,
 			"current_attempts": int(attemptCount),
 		})
 		return
@@ -267,8 +267,8 @@ func (h *StudentHandler) SubmitPublicQuiz(c *gin.Context) {
 	// This endpoint is deprecated - all quiz submissions now require phone verification
 	// Redirect to the registered student endpoint
 	c.JSON(http.StatusBadRequest, gin.H{
-		"error": "Phone verification required",
-		"message": "Please verify your phone number before taking the quiz. Use the phone verification button on the quiz page.",
+		"error":    "Phone verification required",
+		"message":  "Please verify your phone number before taking the quiz. Use the phone verification button on the quiz page.",
 		"redirect": "/api/student/quiz/submit-registered",
 	})
 }
@@ -276,10 +276,11 @@ func (h *StudentHandler) SubmitPublicQuiz(c *gin.Context) {
 // CheckDeviceEligibility is deprecated - phone verification is now used instead
 func (h *StudentHandler) CheckDeviceEligibility(c *gin.Context) {
 	c.JSON(http.StatusBadRequest, gin.H{
-		"error": "Device checking disabled",
+		"error":   "Device checking disabled",
 		"message": "Please use phone verification instead. This endpoint is no longer supported.",
 	})
 }
+
 // Get Total Student Count (Admin only)
 func (h *StudentHandler) GetTotalStudentCount(c *gin.Context) {
 	// Count all unique students (users with role 'student')
@@ -472,48 +473,41 @@ func (h *StudentHandler) GetStudentsByCourse(c *gin.Context) {
 
 // List All Students (Admin only) - Keep for backward compatibility
 func (h *StudentHandler) ListStudents(c *gin.Context) {
-	var students []models.User
+	type StudentWithCourse struct {
+		ID          uint      `json:"id"`
+		Name        string    `json:"name"`
+		Email       string    `json:"email"`
+		PhoneNumber string    `json:"phone_number"`
+		CourseName  string    `json:"course_name"`
+		CreatedAt   time.Time `json:"created_at"`
+	}
 
-	// Get all students with their attempts count
-	if err := database.DB.
-		Preload("Attempts").
-		Where("role = ?", models.RoleStudent).
-		Order("created_at DESC").
-		Find(&students).Error; err != nil {
+	var results []StudentWithCourse
+
+	// Get only students who have enrollments (registered students), not guest quiz takers
+	query := `
+		SELECT DISTINCT
+			u.id,
+			u.name,
+			u.email,
+			u.phone_number,
+			c.title as course_name,
+			u.created_at
+		FROM users u
+		INNER JOIN enrollments e ON u.id = e.student_id
+		INNER JOIN courses c ON e.course_id = c.id
+		WHERE u.role = 'student' 
+		  AND e.status != 'declined'
+		  AND u.phone_number != ''
+		ORDER BY u.created_at DESC
+	`
+
+	if err := database.DB.Raw(query).Scan(&results).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch students"})
 		return
 	}
 
-	// Build response with additional stats
-	type StudentResponse struct {
-		ID            uint      `json:"id"`
-		Name          string    `json:"name"`
-		Email         string    `json:"email"`
-		AttemptCount  int       `json:"attempt_count"`
-		EnrolledCount int       `json:"enrolled_count"`
-		CreatedAt     time.Time `json:"created_at"`
-	}
-
-	var response []StudentResponse
-	for _, student := range students {
-		// Count unique courses the student has attempted
-		var enrolledCount int64
-		database.DB.Model(&models.Attempt{}).
-			Where("student_id = ?", student.ID).
-			Distinct("course_id").
-			Count(&enrolledCount)
-
-		response = append(response, StudentResponse{
-			ID:            student.ID,
-			Name:          student.Name,
-			Email:         student.Email,
-			AttemptCount:  len(student.Attempts),
-			EnrolledCount: int(enrolledCount),
-			CreatedAt:     student.CreatedAt,
-		})
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, results)
 }
 
 // Delete Student (Admin only)
@@ -613,12 +607,12 @@ func (h *StudentHandler) UpdateEnrollmentStatus(c *gin.Context) {
 
 // RegisteredStudentQuizSubmission for phone-verified students
 type RegisteredStudentQuizSubmission struct {
-	StudentID     uint   `json:"student_id" binding:"required"`
-	CourseID      uint   `json:"course_id" binding:"required"`
-	QuizPackageID uint   `json:"quiz_package_id" binding:"required"`
-	Score         int    `json:"score" binding:"min=0"`        // Allow 0 scores
-	TotalPoints   int    `json:"total_points" binding:"required"`
-	TimeTaken     int    `json:"time_taken"` // in seconds
+	StudentID     uint `json:"student_id" binding:"required"`
+	CourseID      uint `json:"course_id" binding:"required"`
+	QuizPackageID uint `json:"quiz_package_id" binding:"required"`
+	Score         int  `json:"score" binding:"min=0"` // Allow 0 scores
+	TotalPoints   int  `json:"total_points" binding:"required"`
+	TimeTaken     int  `json:"time_taken"` // in seconds
 	Answers       []struct {
 		QuestionID   uint   `json:"question_id"`
 		UserAnswer   string `json:"user_answer"`
@@ -672,9 +666,9 @@ func (h *StudentHandler) SubmitRegisteredStudentQuiz(c *gin.Context) {
 
 	if int(attemptCount) >= maxRetakes {
 		c.JSON(http.StatusForbidden, gin.H{
-			"error":           "Maximum retry limit reached",
-			"message":         "You have already taken this quiz the maximum number of times allowed.",
-			"max_retakes":     maxRetakes,
+			"error":            "Maximum retry limit reached",
+			"message":          "You have already taken this quiz the maximum number of times allowed.",
+			"max_retakes":      maxRetakes,
 			"current_attempts": int(attemptCount),
 		})
 		return

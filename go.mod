@@ -1,4 +1,4 @@
-module mitsui-jpy-quiz
+module mitsuki-jpy-quiz
 
 go 1.24.6
 

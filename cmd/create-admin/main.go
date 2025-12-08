@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
-	"mitsui-jpy-quiz/config"
-	"mitsui-jpy-quiz/internal/database"
-	"mitsui-jpy-quiz/internal/models"
-	"mitsui-jpy-quiz/pkg/utils"
+	"mitsuki-jpy-quiz/config"
+	"mitsuki-jpy-quiz/internal/database"
+	"mitsuki-jpy-quiz/internal/models"
+	"mitsuki-jpy-quiz/pkg/utils"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 
 	// Check if admin already exists
 	var existingAdmin models.User
-	err := database.DB.Where("email = ?", "admin@mitsui-jpy.com").First(&existingAdmin).Error
+	err := database.DB.Where("email = ?", "admin@mitsuki-jpy.com").First(&existingAdmin).Error
 	if err == nil {
 		fmt.Println("Admin user already exists!")
 		fmt.Printf("Email: %s\n", existingAdmin.Email)
@@ -43,7 +43,7 @@ func main() {
 
 	// Create admin user
 	admin := models.User{
-		Email:       "admin@mitsui-jpy.com",
+		Email:       "admin@mitsuki-jpy.com",
 		Password:    hashedPassword,
 		Name:        "Admin User",
 		PhoneNumber: "0000000000",
@@ -56,7 +56,7 @@ func main() {
 
 	fmt.Println("\n✅ Admin user created successfully!")
 	fmt.Println("\nLogin credentials:")
-	fmt.Println("Email: admin@mitsui-jpy.com")
+	fmt.Println("Email: admin@mitsuki-jpy.com")
 	fmt.Println("Password: admin123")
 	fmt.Println("Phone: 0000000000 (admin default)")
 	fmt.Println("\n⚠️  Please change the password after first login!")

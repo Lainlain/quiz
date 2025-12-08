@@ -17,8 +17,8 @@ type QuizPackage struct {
 	Description string `gorm:"type:text" json:"description"`
 	IsActive    bool   `gorm:"default:true" json:"is_active"`
 
-       // Maximum number of retakes allowed per student for this package
-       MaxRetakeCount int `gorm:"default:1" json:"max_retake_count"`
+	// Maximum number of retakes allowed per student for this package
+	MaxRetakeCount int `gorm:"default:1" json:"max_retake_count"`
 
 	Questions []Question `gorm:"foreignKey:QuizPackageID" json:"questions,omitempty"`
 }

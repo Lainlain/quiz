@@ -52,7 +52,7 @@ body: JSON.stringify({
 
 3. **Updated Admin Dashboard** (`web/templates/admin/dashboard.html`):
    - Added logo to sidebar header
-   - Logo: 40px x 40px, rounded, positioned next to "Mitsui JPY" text
+   - Logo: 40px x 40px, rounded, positioned next to "Mitsuki JPY" text
 
 4. **Updated Public Quiz Page** (`web/templates/public/quiz.html`):
    - Added logo to:
@@ -92,7 +92,7 @@ body: JSON.stringify({
 ### Test 2: Logo Branding Display
 
 1. **Admin Login** (http://localhost:8080/admin/login):
-   - ✅ Logo appears above "Mitsui JPY" text
+   - ✅ Logo appears above "Mitsuki JPY" text
    - ✅ Circular shape with white border
 
 2. **Admin Dashboard** (http://localhost:8080/admin/dashboard):
@@ -175,4 +175,4 @@ When deploying to production:
 ✅ **Tested**: Both fixes verified in local environment  
 ✅ **Ready**: No server rebuild needed, just refresh browser
 
-**Impact**: Students taking public quizzes will now have their results tracked, and the entire application has professional branding with the Mitsui JPY logo.
+**Impact**: Students taking public quizzes will now have their results tracked, and the entire application has professional branding with the Mitsuki JPY logo.

@@ -13,7 +13,7 @@ go run cmd/create-admin/main.go
 ```
 
 **Default Admin Credentials:**
-- Email: `admin@mitsui-jpy.com`
+- Email: `admin@mitsuki-jpy.com`
 - Password: `admin123`
 
 ### 3. Run the Server
@@ -31,7 +31,7 @@ Server will start at `http://localhost:8080`
 ```bash
 curl -X POST http://localhost:8080/api/auth/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@mitsui-jpy.com","password":"admin123"}'
+  -d '{"email":"admin@mitsuki-jpy.com","password":"admin123"}'
 ```
 
 Copy the `token` from the response.

@@ -1,17 +1,17 @@
 # Admin Login Troubleshooting Guide
 
-## Problem: "Invalid credentials" when logging in with admin@mitsui-jpy.com / admin123
+## Problem: "Invalid credentials" when logging in with admin@mitsuki-jpy.com / admin123
 
 ### Step 1: Verify Admin User Exists in Database
 
 Run this on your server:
 ```bash
-sqlite3 quiz.db "SELECT id, email, name, role FROM users WHERE email='admin@mitsui-jpy.com';"
+sqlite3 quiz.db "SELECT id, email, name, role FROM users WHERE email='admin@mitsuki-jpy.com';"
 ```
 
 **Expected output:**
 ```
-1|admin@mitsui-jpy.com|Admin User|admin
+1|admin@mitsuki-jpy.com|Admin User|admin
 ```
 
 If no output, admin user doesn't exist. Run:
@@ -46,7 +46,7 @@ Test the API directly:
 ```bash
 curl -X POST http://localhost:8080/api/auth/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@mitsui-jpy.com","password":"admin123"}'
+  -d '{"email":"admin@mitsuki-jpy.com","password":"admin123"}'
 ```
 
 **Expected response:**
@@ -55,7 +55,7 @@ curl -X POST http://localhost:8080/api/auth/admin/login \
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": 1,
-    "email": "admin@mitsui-jpy.com",
+    "email": "admin@mitsuki-jpy.com",
     "name": "Admin User",
     "role": "admin"
   }
@@ -120,7 +120,7 @@ If password hash is corrupted, delete and recreate:
 
 ```bash
 # Delete admin user
-sqlite3 quiz.db "DELETE FROM users WHERE email='admin@mitsui-jpy.com';"
+sqlite3 quiz.db "DELETE FROM users WHERE email='admin@mitsuki-jpy.com';"
 
 # Recreate admin user
 go run cmd/create-admin/main.go
@@ -168,7 +168,7 @@ Then run:
 ```sql
 UPDATE users 
 SET password = '$2a$10$SkHKAQ75aZ62LAmL7vRfGezw8Y/HjW//Z.IcAmbaeTOECeL7mnRFG' 
-WHERE email = 'admin@mitsui-jpy.com';
+WHERE email = 'admin@mitsuki-jpy.com';
 .quit
 ```
 
@@ -184,7 +184,7 @@ Run these on your live server:
 cd /www/wwwroot/mitsuki_quiz/quiz
 
 # 1. Check admin exists
-sqlite3 quiz.db "SELECT id, email, name, role FROM users WHERE email='admin@mitsui-jpy.com';"
+sqlite3 quiz.db "SELECT id, email, name, role FROM users WHERE email='admin@mitsuki-jpy.com';"
 
 # 2. If not exists, create admin
 go run cmd/create-admin/main.go
@@ -192,7 +192,7 @@ go run cmd/create-admin/main.go
 # 3. Test login with curl
 curl -X POST http://localhost:8080/api/auth/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@mitsui-jpy.com","password":"admin123"}'
+  -d '{"email":"admin@mitsuki-jpy.com","password":"admin123"}'
 
 # 4. Check server logs
 journalctl -u quizserver -n 50
@@ -227,14 +227,14 @@ systemctl restart quizserver
 To verify admin was created correctly:
 
 ```bash
-sqlite3 quiz.db "SELECT id, email, name, role, password FROM users WHERE email='admin@mitsui-jpy.com';"
+sqlite3 quiz.db "SELECT id, email, name, role, password FROM users WHERE email='admin@mitsuki-jpy.com';"
 ```
 
 The password should be a bcrypt hash starting with `$2a$10$`
 
 Example:
 ```
-1|admin@mitsui-jpy.com|Admin User|admin|$2a$10$SkHKAQ75aZ62LAmL7vRfGezw8Y/HjW//Z.IcAmbaeTOECeL7mnRFG
+1|admin@mitsuki-jpy.com|Admin User|admin|$2a$10$SkHKAQ75aZ62LAmL7vRfGezw8Y/HjW//Z.IcAmbaeTOECeL7mnRFG
 ```
 
 ---
@@ -261,5 +261,5 @@ Example:
    ```bash
    curl -X POST http://localhost:8080/api/auth/admin/login \
      -H "Content-Type: application/json" \
-     -d '{"email":"admin@mitsui-jpy.com","password":"admin123"}'
+     -d '{"email":"admin@mitsuki-jpy.com","password":"admin123"}'
    ```

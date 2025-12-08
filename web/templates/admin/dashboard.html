@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}} - Mitsui JPY Admin</title>
+    <title>{{.Title}} - Mitsuki JPY Admin</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -41,9 +41,9 @@
         <!-- Logo -->
         <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200">
             <div class="flex items-center gap-3">
-                <img src="/static/logo.jpg" alt="Mitsui JPY Logo" class="h-10 w-10 rounded-full object-cover border-2 border-gray-200">
+                <img src="/static/logo.jpg" alt="Mitsuki JPY Logo" class="h-10 w-10 rounded-full object-cover border-2 border-gray-200">
                 <div>
-                    <h1 class="text-lg font-bold text-gray-900">Mitsui JPY</h1>
+                    <h1 class="text-lg font-bold text-gray-900">Mitsuki JPY</h1>
                     <p class="text-xs text-gray-500" x-text="user.name"></p>
                 </div>
             </div>
@@ -485,8 +485,8 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Courses Enrolled</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Attempts</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Name</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registered Date</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -504,14 +504,10 @@
                                             <div class="text-sm text-gray-900" x-text="student.email"></div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                                                <span x-text="student.enrollments_count"></span> courses
-                                            </span>
+                                            <div class="text-sm text-gray-900" x-text="student.phone_number"></div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                                                <span x-text="student.total_attempts"></span> attempts
-                                            </span>
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800" x-text="student.course_name"></span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(student.created_at)"></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"mitsui-jpy-quiz/internal/database"
-	"mitsui-jpy-quiz/internal/models"
+	"mitsuki-jpy-quiz/internal/database"
+	"mitsuki-jpy-quiz/internal/models"
 	"net/http"
 	"strconv"
 

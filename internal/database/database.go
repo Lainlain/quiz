@@ -2,7 +2,7 @@ package database
 
 import (
 	"log"
-	"mitsui-jpy-quiz/internal/models"
+	"mitsuki-jpy-quiz/internal/models"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

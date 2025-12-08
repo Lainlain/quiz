@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"mitsui-jpy-quiz/config"
-	"mitsui-jpy-quiz/pkg/utils"
+	"mitsuki-jpy-quiz/config"
+	"mitsuki-jpy-quiz/pkg/utils"
 	"net/http"
 	"strings"
 

@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"fmt"
-	"mitsui-jpy-quiz/config"
-	"mitsui-jpy-quiz/internal/database"
-	"mitsui-jpy-quiz/internal/models"
-	"mitsui-jpy-quiz/pkg/utils"
+	"mitsuki-jpy-quiz/config"
+	"mitsuki-jpy-quiz/internal/database"
+	"mitsuki-jpy-quiz/internal/models"
+	"mitsuki-jpy-quiz/pkg/utils"
 	"net/http"
 	"strings"
 	"time"
@@ -436,10 +436,10 @@ func (h *AuthHandler) CheckPhoneNumberForQuiz(c *gin.Context) {
 
 			// Add retake information to response
 			response["retake_info"] = gin.H{
-				"current_attempts": int(attemptCount),
-				"max_retakes":      maxRetakes,
+				"current_attempts":   int(attemptCount),
+				"max_retakes":        maxRetakes,
 				"attempts_remaining": maxRetakes - int(attemptCount),
-				"quiz_package_name": quizPackage.Title,
+				"quiz_package_name":  quizPackage.Title,
 			}
 
 			// Check if retake limit exceeded

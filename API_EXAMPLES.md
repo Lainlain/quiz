@@ -16,7 +16,7 @@ go run cmd/server/main.go
 curl -X POST http://localhost:8080/api/auth/admin/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@mitsui-jpy.com",
+    "email": "admin@mitsuki-jpy.com",
     "password": "admin123"
   }'
 ```

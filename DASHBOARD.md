@@ -1,4 +1,4 @@
-# Admin Dashboard - Mitsui JPY Language School
+# Admin Dashboard - Mitsuki JPY Language School
 
 A beautiful, modern admin dashboard built with **Go HTML Templates**, **Tailwind CSS**, and **Alpine.js**.
 
@@ -35,7 +35,7 @@ Navigate to: **http://localhost:8080**
 
 ### 4. Login
 ```
-Email: admin@mitsui-jpy.com
+Email: admin@mitsuki-jpy.com
 Password: admin123
 ```
 
@@ -212,4 +212,4 @@ Dashboard is fully responsive:
 
 ---
 
-**Built with ❤️ for Mitsui JPY Language School**
+**Built with ❤️ for Mitsuki JPY Language School**

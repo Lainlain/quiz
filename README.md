@@ -1,6 +1,6 @@
-# Mitsui JPY Language School - Quiz Exam API
+# Mitsuki JPY Language School - Quiz Exam API
 
-A comprehensive quiz examination system for Mitsui JPY Language School built with Go and Gin framework.
+A comprehensive quiz examination system for Mitsuki JPY Language School built with Go and Gin framework.
 
 ## Features
 
@@ -127,7 +127,7 @@ The server will start on `http://localhost:8080` by default.
 curl -X POST http://localhost:8080/api/auth/admin/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@mitsui-jpy.com",
+    "email": "admin@mitsuki-jpy.com",
     "password": "admin123"
   }'
 ```
@@ -200,7 +200,7 @@ You'll need to manually create an admin user in the database initially, or add a
 ```sql
 INSERT INTO users (email, password, name, role, created_at, updated_at)
 VALUES (
-  'admin@mitsui-jpy.com',
+  'admin@mitsuki-jpy.com',
   -- password is 'admin123' (you need to hash it with bcrypt)
   '$2a$10$YOUR_BCRYPT_HASHED_PASSWORD',
   'Admin User',
@@ -212,9 +212,9 @@ VALUES (
 
 ## License
 
-Proprietary - Mitsui JPY Language School
+Proprietary - Mitsuki JPY Language School
 
 ## Support
 
-For support, contact: support@mitsui-jpy.com
+For support, contact: support@mitsuki-jpy.com
 # quiz

@@ -173,6 +173,9 @@ function dashboard() {
             // Reset selection
             this.selectedCourseForStudents = null;
             this.courseStudents = [];
+            
+            // Also load all students by default
+            await this.loadAllStudents();
         },
         
         async selectCourseForStudents(course) {
@@ -248,9 +251,21 @@ function dashboard() {
         },
         
         async loadAllStudents() {
-            // Load all registered students
-            const data = await this.apiCall('/api/admin/students');
-            this.allStudents = data || [];
+            try {
+                console.log('Starting loadAllStudents...');
+                console.log('Token:', this.token);
+                
+                // Load all registered students
+                const data = await this.apiCall('/api/admin/students');
+                console.log('API response:', data);
+                
+                this.allStudents = data || [];
+                console.log('allStudents array after assignment:', this.allStudents);
+                console.log('allStudents length:', this.allStudents.length);
+            } catch (error) {
+                console.error('Error in loadAllStudents:', error);
+                this.allStudents = [];
+            }
         },
         
         viewStudentDetails(student) {
@@ -273,12 +288,12 @@ function dashboard() {
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Courses Enrolled</label>
-                            <p class="text-xl font-bold text-blue-600">${student.enrollments_count || 0}</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <p class="text-xl font-bold text-green-600">${student.phone_number || 'Not provided'}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Total Attempts</label>
-                            <p class="text-xl font-bold text-purple-600">${student.total_attempts || 0}</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Course Name</label>
+                            <p class="text-xl font-bold text-blue-600">${student.course_name || 'No Course'}</p>
                         </div>
                     </div>
                     <div>

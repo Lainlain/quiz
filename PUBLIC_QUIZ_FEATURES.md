@@ -125,7 +125,7 @@ Statistics available in:
 
 ### Test Course Statistics:
 1. Login to admin: `http://localhost:8080/admin/login`
-   - Email: `admin@mitsui-jpy.com`
+   - Email: `admin@mitsuki-jpy.com`
    - Password: `admin123`
 2. Click "Courses" tab
 3. Click 👥 icon next to any course

@@ -29,7 +29,7 @@ type Question struct {
 	Options       string `gorm:"type:json" json:"options"`       // JSON array: ["Option A", "Option B", "Option C", "Option D"]
 	CorrectAnswer string `gorm:"not null" json:"correct_answer"` // For multiple choice: "A", "B", etc. For true/false: "true"/"false"
 
-	Points      int  `gorm:"not null" json:"points"`                // Manual points per question (no default)
+	Points      int  `gorm:"not null" json:"points"`        // Manual points per question (no default)
 	OrderNumber int  `gorm:"default:0" json:"order_number"` // For ordering questions in quiz
 	IsActive    bool `gorm:"default:true" json:"is_active"`
 }
