@@ -3,226 +3,424 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz Package Statistics</title>
+    <title>Quiz Statistics - Mitsuki JPY</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" type="image/jpeg" href="/static/logo.jpg">
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #dc2626; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #b91c1c; }
+        
+        /* Animations */
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .animate-slide-in { animation: slideIn 0.3s ease-out; }
+        .animate-pulse-slow { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        /* Gradient text */
+        .gradient-text { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        
+        /* Print styles */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+            .print-full-width { width: 100% !important; max-width: none !important; }
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gradient-to-br from-gray-50 to-gray-100">
     <div x-data="statsApp()" x-init="init()" class="min-h-screen">
-        <!-- Header -->
-        <header class="bg-white shadow-sm border-b sticky top-0 z-10">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <a href="/admin/dashboard" class="text-blue-600 hover:text-blue-700 font-medium">
-                            ← Back to Dashboard
+        <!-- Compact Header with Red Theme -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm backdrop-blur-sm bg-white/95">
+            <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3">
+                <div class="flex items-center justify-between gap-2">
+                    <!-- Left: Logo + Title -->
+                    <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                        <a href="/admin/dashboard" class="flex items-center gap-1.5 text-red-600 hover:text-red-700 transition group shrink-0">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                            <span class="hidden sm:inline text-sm font-medium">Back</span>
                         </a>
-                        <div class="h-6 w-px bg-gray-300"></div>
-                        <h1 class="text-2xl font-bold text-gray-900">📊 Quiz Package Statistics</h1>
+                        <div class="h-4 sm:h-5 w-px bg-gray-300 shrink-0"></div>
+                        <div class="flex items-center gap-2 min-w-0">
+                            <img src="/static/logo.jpg" alt="Logo" class="w-5 h-5 sm:w-6 sm:h-6 rounded shrink-0">
+                            <h1 class="text-sm sm:text-lg font-bold gradient-text truncate">Quiz Statistics</h1>
+                        </div>
                     </div>
-                    <button @click="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition print:hidden">
-                        🖨️ Print Report
-                    </button>
+                    
+                    <!-- Right: Actions -->
+                    <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 no-print">
+                        <button @click="exportCSV()" class="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <span class="hidden sm:inline">CSV</span>
+                        </button>
+                        <button @click="window.print()" class="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 rounded-lg hover:from-red-700 hover:to-red-800 transition shadow-sm flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            <span class="hidden sm:inline">Print</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
 
         <!-- Loading State -->
-        <div x-show="loading" class="flex items-center justify-center min-h-[60vh]">
-            <div class="text-center">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p class="mt-4 text-gray-600">Loading statistics...</p>
+        <div x-show="loading" class="flex items-center justify-center min-h-[70vh]">
+            <div class="text-center animate-pulse-slow">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-3 border-red-600 border-t-transparent"></div>
+                <p class="mt-3 text-sm text-gray-600 font-medium">Loading statistics...</p>
             </div>
         </div>
 
-        <!-- Content -->
-        <div x-show="!loading && packageInfo" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Package Info Card -->
-            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <h2 class="text-3xl font-bold text-gray-900" x-text="packageInfo?.title"></h2>
-                        <p class="text-gray-600 mt-1" x-text="'Course: ' + packageInfo?.course_title"></p>
-                        <div class="flex gap-4 mt-3 text-sm text-gray-500">
-                            <span>📝 Questions: <span class="font-semibold text-gray-700" x-text="packageInfo?.question_count"></span></span>
-                            <span>⏱️ Duration: <span class="font-semibold text-gray-700" x-text="packageInfo?.duration + ' minutes'"></span></span>
-                            <span>🔄 Max Retakes: <span class="font-semibold text-gray-700" x-text="packageInfo?.max_retakes || 'Unlimited'"></span></span>
+        <!-- Main Content -->
+        <div x-show="!loading && packageInfo" class="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4 animate-slide-in">
+            
+            <!-- Compact Package Info Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 mb-3 sm:mb-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                        <h2 class="text-lg sm:text-xl font-bold text-gray-900 truncate" x-text="packageInfo?.title"></h2>
+                        <p class="text-xs sm:text-sm text-gray-600 mt-0.5 truncate" x-text="'Course: ' + packageInfo?.course_title"></p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 sm:gap-3 text-xs shrink-0">
+                        <div class="flex items-center gap-1 px-2 py-1 bg-red-50 rounded-md">
+                            <svg class="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <span class="font-semibold text-gray-700" x-text="packageInfo?.question_count"></span>
+                            <span class="text-gray-500">Questions</span>
+                        </div>
+                        <div class="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-md">
+                            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span class="font-semibold text-gray-700" x-text="packageInfo?.duration"></span>
+                            <span class="text-gray-500">min</span>
+                        </div>
+                        <div class="flex items-center gap-1 px-2 py-1 bg-green-50 rounded-md">
+                            <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            <span class="font-semibold text-gray-700" x-text="packageInfo?.max_retakes || '∞'"></span>
+                            <span class="text-gray-500">Retakes</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Stats Overview Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow-sm p-6">
+            <!-- Ultra Compact Stats Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <!-- Total Attempts -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition group">
                     <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600 font-medium">Total Attempts</p>
-                            <p class="text-4xl font-bold text-blue-600 mt-2" x-text="stats?.total_attempts || 0"></p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs text-gray-500 font-medium mb-1">Total Attempts</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-red-600" x-text="stats?.total_attempts || 0"></p>
                         </div>
-                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-3xl">
-                            📝
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-50 to-red-100 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-sm p-6">
+                <!-- Average Score -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition group">
                     <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600 font-medium">Average Score</p>
-                            <p class="text-4xl font-bold text-green-600 mt-2" x-text="(stats?.average_score || 0) + '%'"></p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs text-gray-500 font-medium mb-1">Avg Score</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-blue-600" x-text="Math.round(stats?.average_score || 0) + '%'"></p>
                         </div>
-                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl">
-                            📊
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-sm p-6">
+                <!-- Pass Rate -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition group">
                     <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600 font-medium">Pass Rate</p>
-                            <p class="text-4xl font-bold text-purple-600 mt-2" x-text="(stats?.pass_rate || 0) + '%'"></p>
-                            <p class="text-xs text-gray-500 mt-1">Score ≥ 60%</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs text-gray-500 font-medium mb-1">Pass Rate</p>
+                            <div class="flex items-baseline gap-1">
+                                <p class="text-2xl sm:text-3xl font-bold text-green-600" x-text="Math.round(stats?.pass_rate || 0) + '%'"></p>
+                                <span class="text-xs text-gray-400">≥60%</span>
+                            </div>
                         </div>
-                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-3xl">
-                            ✅
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-50 to-green-100 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-sm p-6">
+                <!-- Completion Rate -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition group">
                     <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600 font-medium">Completion Rate</p>
-                            <p class="text-4xl font-bold text-orange-600 mt-2" x-text="(stats?.completion_rate || 0) + '%'"></p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs text-gray-500 font-medium mb-1">Completion</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-purple-600" x-text="Math.round(stats?.completion_rate || 0) + '%'"></p>
                         </div>
-                        <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center text-3xl">
-                            🎯
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Score Distribution -->
-            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-                <h3 class="text-xl font-bold text-gray-900 mb-6">Score Distribution</h3>
-                <div class="space-y-4">
+            <!-- Compact Score Distribution with Visual Insights -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 mb-3 sm:mb-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm sm:text-base font-bold text-gray-900">Score Distribution</h3>
+                    <div class="text-xs text-gray-500">
+                        Total: <span class="font-bold text-gray-700" x-text="stats?.total_attempts || 0"></span> attempts
+                    </div>
+                </div>
+                
+                <div class="space-y-2 sm:space-y-2.5">
+                    <!-- Excellent -->
                     <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-700">🌟 Excellent (90-100%)</span>
-                            <span class="text-sm font-bold text-green-600" x-text="(stats?.score_distribution?.excellent || 0) + '%'"></span>
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-1.5 text-xs sm:text-sm">
+                                <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                <span class="font-medium text-gray-700">Excellent</span>
+                                <span class="text-gray-400">(90-100%)</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-emerald-600" x-text="Math.round(stats?.score_distribution?.excellent || 0) + '%'"></span>
+                                <span class="text-xs text-gray-400" x-text="'(' + Math.round((stats?.score_distribution?.excellent || 0) * (stats?.total_attempts || 0) / 100) + ')'"></span>
+                            </div>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-8">
-                            <div class="bg-gradient-to-r from-green-500 to-green-600 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm transition-all duration-500" 
-                                 :style="`width: ${stats?.score_distribution?.excellent || 0}%`"
-                                 x-text="(stats?.score_distribution?.excellent || 0) + '%'">
+                        <div class="relative w-full bg-gray-100 rounded-full h-6 overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-r from-emerald-400 to-emerald-600 h-6 rounded-full transition-all duration-700 ease-out flex items-center justify-center" 
+                                 :style="`width: ${stats?.score_distribution?.excellent || 0}%`">
+                                <span class="text-xs font-bold text-white px-2" x-show="(stats?.score_distribution?.excellent || 0) > 8" x-text="Math.round(stats?.score_distribution?.excellent || 0) + '%'"></span>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Good -->
                     <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-700">👍 Good (80-89%)</span>
-                            <span class="text-sm font-bold text-blue-600" x-text="(stats?.score_distribution?.good || 0) + '%'"></span>
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-1.5 text-xs sm:text-sm">
+                                <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                <span class="font-medium text-gray-700">Good</span>
+                                <span class="text-gray-400">(80-89%)</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-blue-600" x-text="Math.round(stats?.score_distribution?.good || 0) + '%'"></span>
+                                <span class="text-xs text-gray-400" x-text="'(' + Math.round((stats?.score_distribution?.good || 0) * (stats?.total_attempts || 0) / 100) + ')'"></span>
+                            </div>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-8">
-                            <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm transition-all duration-500" 
-                                 :style="`width: ${stats?.score_distribution?.good || 0}%`"
-                                 x-text="(stats?.score_distribution?.good || 0) + '%'">
+                        <div class="relative w-full bg-gray-100 rounded-full h-6 overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 h-6 rounded-full transition-all duration-700 ease-out flex items-center justify-center" 
+                                 :style="`width: ${stats?.score_distribution?.good || 0}%`">
+                                <span class="text-xs font-bold text-white px-2" x-show="(stats?.score_distribution?.good || 0) > 8" x-text="Math.round(stats?.score_distribution?.good || 0) + '%'"></span>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Average -->
                     <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-700">📈 Average (60-79%)</span>
-                            <span class="text-sm font-bold text-yellow-600" x-text="(stats?.score_distribution?.average || 0) + '%'"></span>
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-1.5 text-xs sm:text-sm">
+                                <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                                <span class="font-medium text-gray-700">Average</span>
+                                <span class="text-gray-400">(60-79%)</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-amber-600" x-text="Math.round(stats?.score_distribution?.average || 0) + '%'"></span>
+                                <span class="text-xs text-gray-400" x-text="'(' + Math.round((stats?.score_distribution?.average || 0) * (stats?.total_attempts || 0) / 100) + ')'"></span>
+                            </div>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-8">
-                            <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm transition-all duration-500" 
-                                 :style="`width: ${stats?.score_distribution?.average || 0}%`"
-                                 x-text="(stats?.score_distribution?.average || 0) + '%'">
+                        <div class="relative w-full bg-gray-100 rounded-full h-6 overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 h-6 rounded-full transition-all duration-700 ease-out flex items-center justify-center" 
+                                 :style="`width: ${stats?.score_distribution?.average || 0}%`">
+                                <span class="text-xs font-bold text-white px-2" x-show="(stats?.score_distribution?.average || 0) > 8" x-text="Math.round(stats?.score_distribution?.average || 0) + '%'"></span>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Below Pass -->
                     <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-700">❌ Below Pass (< 60%)</span>
-                            <span class="text-sm font-bold text-red-600" x-text="(stats?.score_distribution?.poor || 0) + '%'"></span>
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-1.5 text-xs sm:text-sm">
+                                <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                                <span class="font-medium text-gray-700">Below Pass</span>
+                                <span class="text-gray-400">(< 60%)</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-red-600" x-text="Math.round(stats?.score_distribution?.poor || 0) + '%'"></span>
+                                <span class="text-xs text-gray-400" x-text="'(' + Math.round((stats?.score_distribution?.poor || 0) * (stats?.total_attempts || 0) / 100) + ')'"></span>
+                            </div>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-8">
-                            <div class="bg-gradient-to-r from-red-500 to-red-600 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm transition-all duration-500" 
-                                 :style="`width: ${stats?.score_distribution?.poor || 0}%`"
-                                 x-text="(stats?.score_distribution?.poor || 0) + '%'">
+                        <div class="relative w-full bg-gray-100 rounded-full h-6 overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-r from-red-400 to-red-600 h-6 rounded-full transition-all duration-700 ease-out flex items-center justify-center" 
+                                 :style="`width: ${stats?.score_distribution?.poor || 0}%`">
+                                <span class="text-xs font-bold text-white px-2" x-show="(stats?.score_distribution?.poor || 0) > 8" x-text="Math.round(stats?.score_distribution?.poor || 0) + '%'"></span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Recent Attempts Table -->
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b bg-gray-50">
-                    <h3 class="text-xl font-bold text-gray-900">Recent Attempts</h3>
-                    <p class="text-sm text-gray-600 mt-1">Latest quiz submissions from students</p>
+            <!-- Filters & Search Bar -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5 sm:p-3 mb-3 sm:mb-4 no-print">
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <div class="flex-1">
+                        <input type="text" 
+                               x-model="searchQuery" 
+                               @input="filterAttempts()"
+                               placeholder="Search by student name..." 
+                               class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
+                    </div>
+                    <select x-model="filterStatus" @change="filterAttempts()" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white">
+                        <option value="all">All Status</option>
+                        <option value="completed">Completed</option>
+                        <option value="in_progress">In Progress</option>
+                    </select>
+                    <select x-model="filterScore" @change="filterAttempts()" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white">
+                        <option value="all">All Scores</option>
+                        <option value="excellent">Excellent (90-100%)</option>
+                        <option value="good">Good (80-89%)</option>
+                        <option value="average">Average (60-79%)</option>
+                        <option value="poor">Below Pass (< 60%)</option>
+                    </select>
                 </div>
+            </div>
+
+            <!-- Compact Recent Attempts Table -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900">Recent Attempts</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">
+                                Showing <span class="font-semibold" x-text="filteredAttempts.length"></span> of <span class="font-semibold" x-text="stats?.recent_attempts?.length || 0"></span> attempts
+                            </p>
+                        </div>
+                        <button @click="sortAttempts()" class="text-xs sm:text-sm px-2 py-1 text-gray-600 hover:text-red-600 font-medium transition flex items-center gap-1 no-print">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                            </svg>
+                            <span class="hidden sm:inline">Sort</span>
+                        </button>
+                    </div>
+                </div>
+                
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-3 sm:px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</th>
+                                <th class="px-3 sm:px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Student</th>
+                                <th class="px-3 sm:px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase tracking-wider hidden sm:table-cell">Score</th>
+                                <th class="px-3 sm:px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Result</th>
+                                <th class="px-3 sm:px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider hidden md:table-cell">Date & Time</th>
+                                <th class="px-3 sm:px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <template x-if="!stats?.recent_attempts || stats.recent_attempts.length === 0">
+                        <tbody class="bg-white divide-y divide-gray-100">
+                            <template x-if="!filteredAttempts || filteredAttempts.length === 0">
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-gray-500">
-                                        <div class="text-4xl mb-2">📭</div>
-                                        <p>No attempts yet for this quiz package</p>
+                                    <td colspan="6" class="px-4 py-12 text-center">
+                                        <div class="flex flex-col items-center justify-center text-gray-400">
+                                            <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            <p class="text-sm font-medium">No attempts found</p>
+                                            <p class="text-xs mt-1">Try adjusting your filters</p>
+                                        </div>
                                     </td>
                                 </tr>
                             </template>
-                            <template x-for="(attempt, index) in stats?.recent_attempts" :key="index">
-                                <tr class="hover:bg-gray-50 transition">
-                                    <td class="px-6 py-4">
-                                        <div class="flex items-center">
-                                            <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                                                <span x-text="attempt.student_name?.charAt(0)?.toUpperCase() || '?'"></span>
+                            <template x-for="(attempt, index) in filteredAttempts" :key="index">
+                                <tr class="hover:bg-red-50/30 transition group" :class="{'bg-yellow-50/30': attempt.status !== 'completed'}">
+                                    <!-- Index -->
+                                    <td class="px-3 sm:px-4 py-2.5 text-xs font-bold text-gray-400 group-hover:text-red-600 transition">
+                                        <span x-text="index + 1"></span>
+                                    </td>
+                                    
+                                    <!-- Student -->
+                                    <td class="px-3 sm:px-4 py-2.5">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center shrink-0 group-hover:scale-110 transition">
+                                                <span class="text-xs sm:text-sm font-bold text-red-700" x-text="(attempt.student_name || 'A').charAt(0).toUpperCase()"></span>
                                             </div>
-                                            <div class="ml-4">
-                                                <div class="text-sm font-medium text-gray-900" x-text="attempt.student_name || 'Anonymous'"></div>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="text-xs sm:text-sm font-semibold text-gray-900 truncate" x-text="attempt.student_name || 'Anonymous'"></div>
+                                                <div class="text-xs text-gray-500 md:hidden" x-text="new Date(attempt.completed_at).toLocaleDateString()"></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <div class="text-2xl font-bold" 
-                                             :class="attempt.percentage >= 80 ? 'text-green-600' : attempt.percentage >= 60 ? 'text-blue-600' : 'text-red-600'"
-                                             x-text="attempt.score + ' / ' + attempt.total_score">
+                                    
+                                    <!-- Score (Hidden on mobile) -->
+                                    <td class="px-3 sm:px-4 py-2.5 text-center hidden sm:table-cell">
+                                        <div class="text-base sm:text-lg font-bold" 
+                                             :class="{
+                                                 'text-emerald-600': attempt.percentage >= 90,
+                                                 'text-blue-600': attempt.percentage >= 80 && attempt.percentage < 90,
+                                                 'text-amber-600': attempt.percentage >= 60 && attempt.percentage < 80,
+                                                 'text-red-600': attempt.percentage < 60
+                                             }">
+                                            <span x-text="attempt.score"></span><span class="text-gray-400 text-sm">/<span x-text="attempt.total_score"></span></span>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
-                                              :class="attempt.percentage >= 80 ? 'bg-green-100 text-green-800' : attempt.percentage >= 60 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'"
-                                              x-text="attempt.percentage + '%'">
-                                        </span>
+                                    
+                                    <!-- Result/Percentage -->
+                                    <td class="px-3 sm:px-4 py-2.5 text-center">
+                                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold"
+                                             :class="{
+                                                 'bg-emerald-100 text-emerald-800': attempt.percentage >= 90,
+                                                 'bg-blue-100 text-blue-800': attempt.percentage >= 80 && attempt.percentage < 90,
+                                                 'bg-amber-100 text-amber-800': attempt.percentage >= 60 && attempt.percentage < 80,
+                                                 'bg-red-100 text-red-800': attempt.percentage < 60
+                                             }">
+                                            <svg class="w-3.5 h-3.5" :class="{
+                                                 'rotate-0': attempt.percentage >= 60,
+                                                 'rotate-180': attempt.percentage < 60
+                                             }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                                            </svg>
+                                            <span x-text="Math.round(attempt.percentage) + '%'"></span>
+                                        </div>
+                                        <div class="text-xs text-gray-400 mt-1 sm:hidden">
+                                            <span x-text="attempt.score"></span>/<span x-text="attempt.total_score"></span>
+                                        </div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-900" x-text="attempt.completed_at || 'N/A'"></td>
-                                    <td class="px-6 py-4 text-center">
-                                        <span class="px-3 py-1 rounded-full text-xs font-medium"
-                                              :class="attempt.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
-                                              x-text="attempt.status">
+                                    
+                                    <!-- Date (Hidden on mobile) -->
+                                    <td class="px-3 sm:px-4 py-2.5 hidden md:table-cell">
+                                        <div class="text-xs text-gray-900 font-medium" x-text="new Date(attempt.completed_at).toLocaleString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})"></div>
+                                        <div class="text-xs text-gray-500" x-text="new Date(attempt.completed_at).toLocaleString('en-US', {hour: '2-digit', minute: '2-digit'})"></div>
+                                    </td>
+                                    
+                                    <!-- Status -->
+                                    <td class="px-3 sm:px-4 py-2.5 text-center">
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium"
+                                              :class="{
+                                                  'bg-green-100 text-green-700': attempt.status === 'completed',
+                                                  'bg-yellow-100 text-yellow-700': attempt.status === 'in_progress'
+                                              }">
+                                            <span class="w-1.5 h-1.5 rounded-full" :class="{
+                                                'bg-green-500': attempt.status === 'completed',
+                                                'bg-yellow-500 animate-pulse': attempt.status === 'in_progress'
+                                            }"></span>
+                                            <span x-text="attempt.status === 'completed' ? 'Done' : 'Active'"></span>
                                         </span>
                                     </td>
                                 </tr>
                             </template>
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="px-3 sm:px-4 py-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between no-print" x-show="filteredAttempts.length > 0">
+                    <div class="text-xs text-gray-600">
+                        <span class="font-medium" x-text="filteredAttempts.length"></span> total attempts
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        Last updated: <span class="font-medium" x-text="new Date().toLocaleTimeString()"></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -235,6 +433,11 @@
                 loading: true,
                 packageInfo: null,
                 stats: null,
+                searchQuery: '',
+                filterStatus: 'all',
+                filterScore: 'all',
+                filteredAttempts: [],
+                sortOrder: 'desc', // desc = newest first
 
                 async init() {
                     const urlParams = new URLSearchParams(window.location.search);
@@ -260,14 +463,10 @@
                         // Fetch package info and stats in parallel
                         const [packageResponse, statsResponse] = await Promise.all([
                             fetch(`/api/admin/quiz-packages/${packageId}`, {
-                                headers: {
-                                    'Authorization': `Bearer ${token}`
-                                }
+                                headers: { 'Authorization': `Bearer ${token}` }
                             }),
                             fetch(`/api/admin/quiz-packages/${packageId}/stats`, {
-                                headers: {
-                                    'Authorization': `Bearer ${token}`
-                                }
+                                headers: { 'Authorization': `Bearer ${token}` }
                             })
                         ]);
 
@@ -278,26 +477,91 @@
                         this.packageInfo = await packageResponse.json();
                         this.stats = await statsResponse.json();
                         
+                        // Initialize filtered attempts
+                        this.filteredAttempts = this.stats?.recent_attempts || [];
+                        
                         this.loading = false;
                     } catch (error) {
                         console.error('Error loading stats:', error);
                         alert('Failed to load statistics');
                         window.location.href = '/admin/dashboard';
                     }
+                },
+
+                filterAttempts() {
+                    let attempts = this.stats?.recent_attempts || [];
+                    
+                    // Filter by search query
+                    if (this.searchQuery.trim()) {
+                        const query = this.searchQuery.toLowerCase();
+                        attempts = attempts.filter(a => 
+                            (a.student_name || '').toLowerCase().includes(query)
+                        );
+                    }
+                    
+                    // Filter by status
+                    if (this.filterStatus !== 'all') {
+                        attempts = attempts.filter(a => a.status === this.filterStatus);
+                    }
+                    
+                    // Filter by score range
+                    if (this.filterScore !== 'all') {
+                        attempts = attempts.filter(a => {
+                            const pct = a.percentage;
+                            if (this.filterScore === 'excellent') return pct >= 90;
+                            if (this.filterScore === 'good') return pct >= 80 && pct < 90;
+                            if (this.filterScore === 'average') return pct >= 60 && pct < 80;
+                            if (this.filterScore === 'poor') return pct < 60;
+                            return true;
+                        });
+                    }
+                    
+                    this.filteredAttempts = attempts;
+                },
+
+                sortAttempts() {
+                    this.sortOrder = this.sortOrder === 'desc' ? 'asc' : 'desc';
+                    this.filteredAttempts.sort((a, b) => {
+                        const dateA = new Date(a.completed_at);
+                        const dateB = new Date(b.completed_at);
+                        return this.sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+                    });
+                },
+
+                exportCSV() {
+                    const attempts = this.filteredAttempts;
+                    if (!attempts || attempts.length === 0) {
+                        alert('No data to export');
+                        return;
+                    }
+
+                    // CSV headers
+                    let csv = 'Student Name,Score,Total Score,Percentage,Status,Date & Time\n';
+                    
+                    // CSV rows
+                    attempts.forEach(attempt => {
+                        const row = [
+                            attempt.student_name || 'Anonymous',
+                            attempt.score,
+                            attempt.total_score,
+                            Math.round(attempt.percentage) + '%',
+                            attempt.status,
+                            new Date(attempt.completed_at).toLocaleString()
+                        ];
+                        csv += row.map(field => `"${field}"`).join(',') + '\n';
+                    });
+
+                    // Download
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `quiz-stats-${this.packageInfo?.title || 'export'}-${new Date().toISOString().split('T')[0]}.csv`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
                 }
             }
         }
     </script>
-
-    <style>
-        @media print {
-            .print\:hidden {
-                display: none !important;
-            }
-            body {
-                background: white;
-            }
-        }
-    </style>
 </body>
 </html>
