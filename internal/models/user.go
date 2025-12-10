@@ -22,8 +22,10 @@ type User struct {
 	Email       string   `gorm:"unique;not null" json:"email"`
 	Password    string   `gorm:"not null" json:"-"`
 	Name        string   `gorm:"not null" json:"name"`
-	PhoneNumber string   `gorm:"type:varchar(20);unique;not null" json:"phone_number"`
+	PhoneNumber string   `gorm:"type:varchar(20)" json:"phone_number"`
 	Address     string   `gorm:"type:text" json:"address"`
+	City        string   `gorm:"type:varchar(100)" json:"city"`
+	PostalCode  string   `gorm:"type:varchar(20)" json:"postal_code"`
 	FacebookURL string   `gorm:"type:varchar(255)" json:"facebook_url"`
 	Role        UserRole `gorm:"type:varchar(20);not null" json:"role"`
 

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Package Statistics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/jpeg" href="/static/logo.jpg">
+</head>
+<body class="bg-gray-50">
+    <div x-data="statsApp()" x-init="init()" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <a href="/admin/dashboard" class="text-blue-600 hover:text-blue-700 font-medium">
+                            ← Back to Dashboard
+                        </a>
+                        <div class="h-6 w-px bg-gray-300"></div>
+                        <h1 class="text-2xl font-bold text-gray-900">📊 Quiz Package Statistics</h1>
+                    </div>
+                    <button @click="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition print:hidden">
+                        🖨️ Print Report
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div x-show="loading" class="flex items-center justify-center min-h-[60vh]">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">Loading statistics...</p>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div x-show="!loading && packageInfo" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Package Info Card -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-900" x-text="packageInfo?.title"></h2>
+                        <p class="text-gray-600 mt-1" x-text="'Course: ' + packageInfo?.course_title"></p>
+                        <div class="flex gap-4 mt-3 text-sm text-gray-500">
+                            <span>📝 Questions: <span class="font-semibold text-gray-700" x-text="packageInfo?.question_count"></span></span>
+                            <span>⏱️ Duration: <span class="font-semibold text-gray-700" x-text="packageInfo?.duration + ' minutes'"></span></span>
+                            <span>🔄 Max Retakes: <span class="font-semibold text-gray-700" x-text="packageInfo?.max_retakes || 'Unlimited'"></span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Overview Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 font-medium">Total Attempts</p>
+                            <p class="text-4xl font-bold text-blue-600 mt-2" x-text="stats?.total_attempts || 0"></p>
+                        </div>
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-3xl">
+                            📝
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 font-medium">Average Score</p>
+                            <p class="text-4xl font-bold text-green-600 mt-2" x-text="(stats?.average_score || 0) + '%'"></p>
+                        </div>
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl">
+                            📊
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 font-medium">Pass Rate</p>
+                            <p class="text-4xl font-bold text-purple-600 mt-2" x-text="(stats?.pass_rate || 0) + '%'"></p>
+                            <p class="text-xs text-gray-500 mt-1">Score ≥ 60%</p>
+                        </div>
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-3xl">
+                            ✅
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 font-medium">Completion Rate</p>
+                            <p class="text-4xl font-bold text-orange-600 mt-2" x-text="(stats?.completion_rate || 0) + '%'"></p>
+                        </div>
+                        <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center text-3xl">
+                            🎯
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Score Distribution -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h3 class="text-xl font-bold text-gray-900 mb-6">Score Distribution</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">🌟 Excellent (90-100%)</span>
+                            <span class="text-sm font-bold text-green-600" x-text="(stats?.score_distribution?.excellent || 0) + '%'"></span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-8">
+                            <div class="bg-gradient-to-r from-green-500 to-green-600 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm transition-all duration-500" 
+                                 :style="`width: ${stats?.score_distribution?.excellent || 0}%`"
+                                 x-text="(stats?.score_distribution?.excellent || 0) + '%'">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">👍 Good (80-89%)</span>
+                            <span class="text-sm font-bold text-blue-600" x-text="(stats?.score_distribution?.good || 0) + '%'"></span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-8">
+                            <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm transition-all duration-500" 
+                                 :style="`width: ${stats?.score_distribution?.good || 0}%`"
+                                 x-text="(stats?.score_distribution?.good || 0) + '%'">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">📈 Average (60-79%)</span>
+                            <span class="text-sm font-bold text-yellow-600" x-text="(stats?.score_distribution?.average || 0) + '%'"></span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-8">
+                            <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm transition-all duration-500" 
+                                 :style="`width: ${stats?.score_distribution?.average || 0}%`"
+                                 x-text="(stats?.score_distribution?.average || 0) + '%'">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">❌ Below Pass (< 60%)</span>
+                            <span class="text-sm font-bold text-red-600" x-text="(stats?.score_distribution?.poor || 0) + '%'"></span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-8">
+                            <div class="bg-gradient-to-r from-red-500 to-red-600 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm transition-all duration-500" 
+                                 :style="`width: ${stats?.score_distribution?.poor || 0}%`"
+                                 x-text="(stats?.score_distribution?.poor || 0) + '%'">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Attempts Table -->
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b bg-gray-50">
+                    <h3 class="text-xl font-bold text-gray-900">Recent Attempts</h3>
+                    <p class="text-sm text-gray-600 mt-1">Latest quiz submissions from students</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-if="!stats?.recent_attempts || stats.recent_attempts.length === 0">
+                                <tr>
+                                    <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                        <div class="text-4xl mb-2">📭</div>
+                                        <p>No attempts yet for this quiz package</p>
+                                    </td>
+                                </tr>
+                            </template>
+                            <template x-for="(attempt, index) in stats?.recent_attempts" :key="index">
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                                                <span x-text="attempt.student_name?.charAt(0)?.toUpperCase() || '?'"></span>
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900" x-text="attempt.student_name || 'Anonymous'"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <div class="text-2xl font-bold" 
+                                             :class="attempt.percentage >= 80 ? 'text-green-600' : attempt.percentage >= 60 ? 'text-blue-600' : 'text-red-600'"
+                                             x-text="attempt.score + ' / ' + attempt.total_score">
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
+                                              :class="attempt.percentage >= 80 ? 'bg-green-100 text-green-800' : attempt.percentage >= 60 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'"
+                                              x-text="attempt.percentage + '%'">
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900" x-text="attempt.completed_at || 'N/A'"></td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="px-3 py-1 rounded-full text-xs font-medium"
+                                              :class="attempt.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                                              x-text="attempt.status">
+                                        </span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+        function statsApp() {
+            return {
+                loading: true,
+                packageInfo: null,
+                stats: null,
+
+                async init() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const packageId = urlParams.get('id');
+                    
+                    if (!packageId) {
+                        alert('Invalid package ID');
+                        window.location.href = '/admin/dashboard';
+                        return;
+                    }
+
+                    await this.loadStats(packageId);
+                },
+
+                async loadStats(packageId) {
+                    try {
+                        const token = localStorage.getItem('token');
+                        if (!token) {
+                            window.location.href = '/admin/login';
+                            return;
+                        }
+
+                        // Fetch package info and stats in parallel
+                        const [packageResponse, statsResponse] = await Promise.all([
+                            fetch(`/api/admin/quiz-packages/${packageId}`, {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            }),
+                            fetch(`/api/admin/quiz-packages/${packageId}/stats`, {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            })
+                        ]);
+
+                        if (!packageResponse.ok || !statsResponse.ok) {
+                            throw new Error('Failed to load data');
+                        }
+
+                        this.packageInfo = await packageResponse.json();
+                        this.stats = await statsResponse.json();
+                        
+                        this.loading = false;
+                    } catch (error) {
+                        console.error('Error loading stats:', error);
+                        alert('Failed to load statistics');
+                        window.location.href = '/admin/dashboard';
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @media print {
+            .print\:hidden {
+                display: none !important;
+            }
+            body {
+                background: white;
+            }
+        }
+    </style>
+</body>
+</html>

@@ -26,6 +26,13 @@ func (h *WebHandler) AdminDashboardPage(c *gin.Context) {
 	})
 }
 
+// Admin Package Statistics Page
+func (h *WebHandler) PackageStatsPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "package-stats.html", gin.H{
+		"Title": "Quiz Package Statistics",
+	})
+}
+
 // Public Quiz Page
 func (h *WebHandler) QuizPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "quiz.html", gin.H{

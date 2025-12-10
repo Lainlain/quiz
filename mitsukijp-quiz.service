@@ -1,0 +1,67 @@
+# Systemd service file for Mitsuki JPY Quiz Application
+# File location: /etc/systemd/system/mitsukijp-quiz.service
+#
+# Installation:
+# 1. Build the binary first:
+#    cd /home/lainlain/Desktop/Go\ Lang\ /quiz
+#    go build -o bin/quiz-server cmd/server/main.go
+#
+# 2. Copy this file to systemd:
+#    sudo cp mitsukijp-quiz.service /etc/systemd/system/
+#
+# 3. Reload systemd:
+#    sudo systemctl daemon-reload
+#
+# 4. Start the service:
+#    sudo systemctl start mitsukijp-quiz
+#
+# 5. Enable auto-start on boot:
+#    sudo systemctl enable mitsukijp-quiz
+#
+# 6. Check status:
+#    sudo systemctl status mitsukijp-quiz
+#
+# 7. View logs:
+#    sudo journalctl -u mitsukijp-quiz -f
+
+[Unit]
+Description=Mitsuki JPY Language School Quiz Application
+Documentation=https://github.com/yourusername/quiz
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+
+# Working directory (update if your path is different)
+WorkingDirectory=/home/lainlain/Desktop/Go Lang /quiz
+
+# Path to executable binary
+ExecStart=/home/lainlain/Desktop/Go Lang /quiz/bin/quiz-server
+
+# Restart policy
+Restart=always
+RestartSec=5
+
+# Environment variables
+Environment="GIN_MODE=release"
+Environment="JWT_SECRET=your-secret-key-change-in-production"
+Environment="DATABASE_URL=quiz.db"
+Environment="SERVER_PORT=8080"
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Process limits
+LimitNOFILE=65535
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mitsukijp-quiz
+
+[Install]
+WantedBy=multi-user.target

@@ -49,12 +49,30 @@ func (h *QuizPackageHandler) GetQuizPackage(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 
 	var quizPackage models.QuizPackage
-	if err := database.DB.Preload("Questions").First(&quizPackage, id).Error; err != nil {
+	if err := database.DB.Preload("Questions").Preload("Course").First(&quizPackage, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Quiz package not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, quizPackage)
+	// Get question count
+	var questionCount int64
+	database.DB.Model(&models.Question{}).Where("quiz_package_id = ?", id).Count(&questionCount)
+
+	// Return enriched data
+	response := gin.H{
+		"id":             quizPackage.ID,
+		"title":          quizPackage.Title,
+		"course_id":      quizPackage.CourseID,
+		"course_title":   quizPackage.Course.Title,
+		"duration":       quizPackage.Course.ExamTime,
+		"max_retakes":    quizPackage.MaxRetakeCount,
+		"question_count": questionCount,
+		"questions":      quizPackage.Questions,
+		"created_at":     quizPackage.CreatedAt,
+		"updated_at":     quizPackage.UpdatedAt,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // Update Quiz Package (Admin only)

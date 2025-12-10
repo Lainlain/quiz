@@ -34,7 +34,8 @@ func (h *CourseHandler) CreateCourse(c *gin.Context) {
 // Get All Courses
 func (h *CourseHandler) GetCourses(c *gin.Context) {
 	var courses []models.Course
-	if err := database.DB.Preload("QuizPackages").Find(&courses).Error; err != nil {
+	// Preload QuizPackages and their Questions for accurate counts
+	if err := database.DB.Preload("QuizPackages.Questions").Find(&courses).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch courses"})
 		return
 	}

@@ -484,21 +484,21 @@ func (h *StudentHandler) ListStudents(c *gin.Context) {
 
 	var results []StudentWithCourse
 
-	// Get only students who have enrollments (registered students), not guest quiz takers
+	// Get ALL students (both registered with enrollments and guest quiz takers)
+	// Uses GROUP_CONCAT to show multiple course enrollments in one row per student
 	query := `
-		SELECT DISTINCT
+		SELECT 
 			u.id,
 			u.name,
 			u.email,
 			u.phone_number,
-			c.title as course_name,
+			COALESCE(GROUP_CONCAT(c.title, ', '), 'No Course') as course_name,
 			u.created_at
 		FROM users u
-		INNER JOIN enrollments e ON u.id = e.student_id
-		INNER JOIN courses c ON e.course_id = c.id
-		WHERE u.role = 'student' 
-		  AND e.status != 'declined'
-		  AND u.phone_number != ''
+		LEFT JOIN enrollments e ON u.id = e.student_id AND e.status IN ('pending', 'approved')
+		LEFT JOIN courses c ON e.course_id = c.id
+		WHERE u.role = 'student'
+		GROUP BY u.id, u.name, u.email, u.phone_number, u.created_at
 		ORDER BY u.created_at DESC
 	`
 
@@ -543,28 +543,54 @@ func (h *StudentHandler) GetEnrollmentsByCourse(c *gin.Context) {
 		Name        string    `json:"name"`
 		Email       string    `json:"email"`
 		PhoneNumber string    `json:"phone_number"`
-		Address     string    `json:"address"`
+		Address     string    `json:"address"` // Combined address, city, and postal code
 		FacebookURL string    `json:"facebook_url"`
 		Status      string    `json:"status"`
 		CreatedAt   time.Time `json:"created_at"`
 	}
 
 	var enrollments []models.Enrollment
-	// Exclude declined enrollments from the list
-	if err := database.DB.Preload("Student").Where("course_id = ? AND status != ?", courseID, models.EnrollmentDeclined).Order("created_at DESC").Find(&enrollments).Error; err != nil {
+	// Exclude declined enrollments from the list - use JOIN to ensure we get student data
+	if err := database.DB.
+		Joins("JOIN users ON users.id = enrollments.student_id").
+		Where("enrollments.course_id = ? AND enrollments.status != ? AND users.deleted_at IS NULL", courseID, models.EnrollmentDeclined).
+		Preload("Student").
+		Order("enrollments.created_at DESC").
+		Find(&enrollments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch enrollments"})
 		return
 	}
 
 	var details []EnrollmentDetail
 	for _, enrollment := range enrollments {
+		// Safety check: ensure Student data is loaded
+		if enrollment.Student.ID == 0 {
+			log.Printf("Warning: Student data not loaded for enrollment ID %d", enrollment.ID)
+			continue
+		}
+
+		// Combine address fields into one string
+		fullAddress := enrollment.Student.Address
+		if enrollment.Student.City != "" {
+			if fullAddress != "" {
+				fullAddress += ", "
+			}
+			fullAddress += enrollment.Student.City
+		}
+		if enrollment.Student.PostalCode != "" {
+			if fullAddress != "" {
+				fullAddress += ", "
+			}
+			fullAddress += enrollment.Student.PostalCode
+		}
+
 		details = append(details, EnrollmentDetail{
 			ID:          enrollment.ID,
 			StudentID:   enrollment.StudentID,
 			Name:        enrollment.Student.Name,
 			Email:       enrollment.Student.Email,
 			PhoneNumber: enrollment.Student.PhoneNumber,
-			Address:     enrollment.Student.Address,
+			Address:     fullAddress, // Combined address
 			FacebookURL: enrollment.Student.FacebookURL,
 			Status:      string(enrollment.Status),
 			CreatedAt:   enrollment.CreatedAt,

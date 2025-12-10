@@ -5,12 +5,20 @@ function dashboard() {
         token: '',
         currentView: 'overview',
         viewTitle: 'Overview',
+        mobileMenuOpen: false, // Mobile menu state
         
         // Selection for drilldown
         selectedCourseId: null,
         selectedPackageId: null,
         selectedCourseForStudents: null,
         studentViewMode: 'courses', // 'courses' or 'all'
+        
+        // Filters for hierarchical navigation
+        selectedCourseFilter: null,
+        selectedPackageFilter: null,
+        
+        // Student view toggle
+        studentView: 'list', // 'list' or 'courses'
         
         // Data
         stats: {
@@ -75,6 +83,7 @@ function dashboard() {
         // View Management
         async switchView(view) {
             this.currentView = view;
+            this.mobileMenuOpen = false; // Close mobile menu when switching views
             
             switch(view) {
                 case 'overview':
@@ -107,11 +116,27 @@ function dashboard() {
                 this.apiCall('/api/admin/students/courses')
             ]);
             
+            this.courses = courses || [];
             this.stats.courses = courses?.length || 0;
             this.stats.students = studentData?.total_students || 0;
             this.totalStudentCount = studentData?.total_students || 0;
-            this.stats.packages = 0;
-            this.stats.questions = 0;
+            
+            // Count packages and questions from courses
+            let packageCount = 0;
+            let questionCount = 0;
+            this.courses.forEach(course => {
+                if (course.quiz_packages) {
+                    packageCount += course.quiz_packages.length;
+                    course.quiz_packages.forEach(pkg => {
+                        if (pkg.questions) {
+                            questionCount += pkg.questions.length;
+                        }
+                    });
+                }
+            });
+            
+            this.stats.packages = packageCount;
+            this.stats.questions = questionCount;
         },
         
         async loadCourses() {
@@ -610,6 +635,13 @@ function dashboard() {
             return pkg ? pkg.title : 'Unknown';
         },
         
+        getCourseNameForQuestion(packageId) {
+            const pkg = this.packages.find(p => p.id === packageId);
+            if (!pkg) return 'Unknown';
+            const course = this.courses.find(c => c.id === pkg.course_id);
+            return course ? course.title : 'Unknown';
+        },
+        
         getCoursePackageCount(courseId) {
             return this.packages.filter(p => p.course_id === courseId).length;
         },
@@ -622,6 +654,126 @@ function dashboard() {
         
         getPackageQuestionCount(packageId) {
             return this.questions.filter(q => q.quiz_package_id === packageId).length;
+        },
+
+        // Count questions directly from course data structure (no need to load questions)
+        countCourseQuestions(course) {
+            if (!course || !course.quiz_packages) return 0;
+            let total = 0;
+            course.quiz_packages.forEach(pkg => {
+                if (pkg.questions) {
+                    total += pkg.questions.length;
+                }
+            });
+            return total;
+        },
+
+        // Count questions for a specific package from its data
+        countPackageQuestions(pkg) {
+            return pkg.questions?.length || 0;
+        },
+        
+        // Navigation and filtering methods
+        async viewCourseDetails(course) {
+            // Store selected course
+            this.selectedCourseId = course.id;
+            this.selectedCourseFilter = course.id;
+            this.selectedPackageFilter = null;
+            
+            // Navigate to packages view showing this course's packages
+            await this.switchView('packages');
+        },
+        
+        async viewPackageDetails(pkg) {
+            // Store selected package
+            this.selectedPackageId = pkg.id;
+            this.selectedPackageFilter = pkg.id;
+            
+            // Ensure course filter is set
+            if (pkg.course_id) {
+                this.selectedCourseId = pkg.course_id;
+                this.selectedCourseFilter = pkg.course_id;
+            }
+            
+            // Navigate to questions view showing this package's questions
+            await this.switchView('questions');
+        },
+        
+        goBackToCourses() {
+            this.selectedCourseId = null;
+            this.selectedCourseFilter = null;
+            this.selectedPackageId = null;
+            this.selectedPackageFilter = null;
+            this.switchView('courses');
+        },
+        
+        goBackToPackages() {
+            this.selectedPackageId = null;
+            this.selectedPackageFilter = null;
+            this.switchView('packages');
+        },
+        
+        async viewCourseStudents(course) {
+            // Store selected course for filtering students
+            this.selectedCourseForStudents = course;
+            
+            // Navigate to students view
+            await this.switchView('students');
+            
+            // Automatically switch to "By Course" view
+            this.studentView = 'courses';
+            
+            // Load students for this course
+            await this.selectCourseForStudents(course);
+        },
+        
+        async filterByCourse(courseId) {
+            this.selectedCourseFilter = courseId;
+            this.selectedPackageFilter = null;
+            
+            // If on questions view, filter questions by course
+            if (this.currentView === 'questions') {
+                await this.loadQuestions();
+            } else if (this.currentView === 'packages') {
+                // Already filtered by display logic
+            } else {
+                // Navigate to packages view filtered by course
+                await this.switchView('packages');
+            }
+        },
+        
+        async filterByPackage(packageId) {
+            const pkg = this.packages.find(p => p.id === packageId);
+            if (pkg) {
+                this.selectedCourseFilter = pkg.course_id;
+                this.selectedPackageFilter = packageId;
+            }
+            
+            // Navigate to questions view if not already there
+            if (this.currentView !== 'questions') {
+                await this.switchView('questions');
+            }
+        },
+        
+        clearFilters() {
+            this.selectedCourseFilter = null;
+            this.selectedPackageFilter = null;
+        },
+        
+        // Get filtered questions as a method (not computed property)
+        getFilteredQuestions() {
+            let filtered = this.questions;
+            
+            if (this.selectedPackageFilter) {
+                filtered = filtered.filter(q => q.quiz_package_id === this.selectedPackageFilter);
+            } else if (this.selectedCourseFilter) {
+                const coursePackageIds = this.packages
+                    .filter(p => p.course_id === this.selectedCourseFilter)
+                    .map(p => p.id);
+                filtered = filtered.filter(q => coursePackageIds.includes(q.quiz_package_id));
+            }
+            
+            return filtered;
         },
         
         // Copy quiz link
@@ -666,6 +818,12 @@ function dashboard() {
         
         // Show package statistics
         async showPackageStats(pkg) {
+            // Redirect to dedicated statistics page
+            window.location.href = `/admin/package-stats?id=${pkg.id}`;
+        },
+
+        // Old modal version (kept for reference, can be deleted)
+        async showPackageStatsModal(pkg) {
             // Fetch statistics data
             const stats = await this.apiCall(`/api/admin/quiz-packages/${pkg.id}/stats`);
             
@@ -938,6 +1096,51 @@ function dashboard() {
                 month: 'short', 
                 day: 'numeric' 
             });
+        },
+
+        // Copy Link Functions
+        copyRegistrationLink(course) {
+            const baseUrl = window.location.origin;
+            const registrationLink = `${baseUrl}/register/${course.id}`;
+            
+            navigator.clipboard.writeText(registrationLink).then(() => {
+                this.showToast('✅ Registration link copied!', 'success');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                this.showToast('❌ Failed to copy link', 'error');
+            });
+        },
+
+        copyQuizLink(pkg) {
+            const baseUrl = window.location.origin;
+            const quizLink = `${baseUrl}/quiz?package=${pkg.id}`;
+            
+            navigator.clipboard.writeText(quizLink).then(() => {
+                this.showToast('✅ Quiz link copied!', 'success');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                this.showToast('❌ Failed to copy link', 'error');
+            });
+        },
+
+        showToast(message, type = 'success') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium animate-fade-in ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            }`;
+            toast.textContent = message;
+            toast.style.animation = 'slideInRight 0.3s ease-out';
+            
+            document.body.appendChild(toast);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease-out';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
         },
         
         async viewStudentCourseDetails(student) {

@@ -46,6 +46,7 @@ func main() {
 	// Web routes (HTML pages)
 	router.GET("/admin/login", webHandler.AdminLoginPage)
 	router.GET("/admin/dashboard", webHandler.AdminDashboardPage)
+	router.GET("/admin/package-stats", webHandler.PackageStatsPage)
 	router.GET("/admin", func(c *gin.Context) {
 		c.Redirect(302, "/admin/login")
 	})
@@ -96,9 +97,8 @@ func main() {
 		admin.POST("/quiz-packages", quizPackageHandler.CreateQuizPackage)
 		admin.PUT("/quiz-packages/:id", quizPackageHandler.UpdateQuizPackage)
 		admin.DELETE("/quiz-packages/:id", quizPackageHandler.DeleteQuizPackage)
-		admin.GET("/quiz-packages/:id/stats", quizPackageHandler.GetQuizPackageStats)
-
-		// Question management
+		admin.GET("/quiz-packages/:id", quizPackageHandler.GetQuizPackage)
+		admin.GET("/quiz-packages/:id/stats", quizPackageHandler.GetQuizPackageStats) // Question management
 		admin.POST("/questions", questionHandler.CreateQuestion)
 		admin.PUT("/questions/:id", questionHandler.UpdateQuestion)
 		admin.DELETE("/questions/:id", questionHandler.DeleteQuestion)

@@ -171,22 +171,22 @@ function quizApp() {
             return this.questions.reduce((sum, q) => sum + q.points, 0);
         },
         
-        // Verify phone number before starting quiz
+        // Verify phone number or email before starting quiz
         async verifyPhoneNumber() {
             if (!this.phoneNumber.trim()) {
-                this.showModal('warning', 'Phone Number Required', 'Please enter your phone number to continue.');
+                this.showModal('warning', 'Identifier Required', 'Please enter your phone number or email to continue.');
                 return;
             }
             
             try {
                 this.isLoading = true;
                 
-                // Check if phone number is approved for this course and quiz package
+                // Check if phone number or email is approved for this course and quiz package
                 const response = await fetch(`/api/quiz/check-phone?course_id=${this.courseId}&phone_number=${encodeURIComponent(this.phoneNumber)}&quiz_package_id=${this.quizPackageId}`);
                 const data = await response.json();
                 
                 if (!response.ok) {
-                    this.showModal('error', 'Error', data.error || 'Failed to verify phone number. Please try again.');
+                    this.showModal('error', 'Error', data.error || 'Failed to verify your information. Please try again.');
                     this.isLoading = false;
                     return;
                 }
@@ -210,7 +210,7 @@ function quizApp() {
                 this.studentName = data.student_name;
                 this.retakeInfo = data.retake_info || null;
                 
-                console.log('Phone number verified. Student:', this.studentName);
+                console.log('Student verified. Student:', this.studentName);
                 if (this.retakeInfo) {
                     console.log('Retake info:', this.retakeInfo);
                 }
@@ -219,8 +219,8 @@ function quizApp() {
                 this.startQuiz();
                 
             } catch (error) {
-                console.error('Error verifying phone number:', error);
-                this.showModal('error', 'Verification Failed', 'Failed to verify your phone number. Please check your connection and try again.');
+                console.error('Error verifying student:', error);
+                this.showModal('error', 'Verification Failed', 'Failed to verify your information. Please check your connection and try again.');
                 this.isLoading = false;
             }
         },

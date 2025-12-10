@@ -159,8 +159,10 @@ func (h *AuthHandler) StudentRegister(c *gin.Context) {
 type CourseRegistrationRequest struct {
 	Name        string `json:"name" binding:"required"`
 	Email       string `json:"email" binding:"required,email"`
-	PhoneNumber string `json:"phone_number" binding:"required"`
+	PhoneNumber string `json:"phone_number"` // Optional
 	Address     string `json:"address" binding:"required"`
+	City        string `json:"city"`         // Optional
+	PostalCode  string `json:"postal_code"`  // Optional
 	FacebookURL string `json:"facebook_url"` // Optional
 	Password    string `json:"password"`     // Optional - will be auto-generated if not provided
 }
@@ -182,55 +184,57 @@ func (h *AuthHandler) RegisterForCourse(c *gin.Context) {
 		return
 	}
 
-	// Check if phone number already exists (phone number is unique identifier)
-	var existingUserByPhone models.User
-	if err := database.DB.Where("phone_number = ?", req.PhoneNumber).First(&existingUserByPhone).Error; err == nil {
-		// User with this phone number exists, check if already enrolled
-		var existingEnrollment models.Enrollment
-		if err := database.DB.Where("student_id = ? AND course_id = ?", existingUserByPhone.ID, courseID).First(&existingEnrollment).Error; err == nil {
-			// Check if declined - allow re-registration by updating existing enrollment
-			if existingEnrollment.Status == models.EnrollmentDeclined {
-				// Update declined enrollment to pending
-				existingEnrollment.Status = models.EnrollmentPending
-				if err := database.DB.Save(&existingEnrollment).Error; err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update registration"})
+	// Check if phone number already exists (only if phone number is provided)
+	if req.PhoneNumber != "" {
+		var existingUserByPhone models.User
+		if err := database.DB.Where("phone_number = ? AND phone_number != ''", req.PhoneNumber).First(&existingUserByPhone).Error; err == nil {
+			// User with this phone number exists, check if already enrolled
+			var existingEnrollment models.Enrollment
+			if err := database.DB.Where("student_id = ? AND course_id = ?", existingUserByPhone.ID, courseID).First(&existingEnrollment).Error; err == nil {
+				// Check if declined - allow re-registration by updating existing enrollment
+				if existingEnrollment.Status == models.EnrollmentDeclined {
+					// Update declined enrollment to pending
+					existingEnrollment.Status = models.EnrollmentPending
+					if err := database.DB.Save(&existingEnrollment).Error; err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update registration"})
+						return
+					}
+
+					c.JSON(http.StatusCreated, gin.H{
+						"message": "Registration submitted successfully! Waiting for admin approval.",
+						"status":  "pending",
+					})
 					return
 				}
 
-				c.JSON(http.StatusCreated, gin.H{
-					"message": "Registration submitted successfully! Waiting for admin approval.",
-					"status":  "pending",
+				// Already registered with pending or approved status
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error":              "This phone number is already registered for this course",
+					"already_registered": true,
+					"status":             existingEnrollment.Status,
 				})
 				return
 			}
 
-			// Already registered with pending or approved status
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":              "This phone number is already registered for this course",
+			// User exists but not enrolled, create enrollment
+			enrollment := models.Enrollment{
+				StudentID: existingUserByPhone.ID,
+				CourseID:  course.ID,
+				Status:    models.EnrollmentPending,
+			}
+
+			if err := database.DB.Create(&enrollment).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register for course"})
+				return
+			}
+
+			c.JSON(http.StatusCreated, gin.H{
+				"message":            "Registration submitted successfully! Waiting for admin approval.",
+				"status":             "pending",
 				"already_registered": true,
-				"status":             existingEnrollment.Status,
 			})
 			return
 		}
-
-		// User exists but not enrolled, create enrollment
-		enrollment := models.Enrollment{
-			StudentID: existingUserByPhone.ID,
-			CourseID:  course.ID,
-			Status:    models.EnrollmentPending,
-		}
-
-		if err := database.DB.Create(&enrollment).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register for course"})
-			return
-		}
-
-		c.JSON(http.StatusCreated, gin.H{
-			"message":            "Registration submitted successfully! Waiting for admin approval.",
-			"status":             "pending",
-			"already_registered": true,
-		})
-		return
 	}
 
 	// Check if email already exists (secondary check)
@@ -263,6 +267,8 @@ func (h *AuthHandler) RegisterForCourse(c *gin.Context) {
 		Name:        req.Name,
 		PhoneNumber: req.PhoneNumber,
 		Address:     req.Address,
+		City:        req.City,
+		PostalCode:  req.PostalCode,
 		FacebookURL: req.FacebookURL,
 		Role:        models.RoleStudent,
 	}
@@ -351,14 +357,14 @@ func (h *AuthHandler) CheckRegistrationStatus(c *gin.Context) {
 	})
 }
 
-// CheckPhoneNumberForQuiz - Verify if phone number is approved to take quiz for a specific course
+// CheckPhoneNumberForQuiz - Verify if phone number OR email is approved to take quiz for a specific course
 func (h *AuthHandler) CheckPhoneNumberForQuiz(c *gin.Context) {
 	courseID := c.Query("course_id")
-	phoneNumber := c.Query("phone_number")
+	identifier := c.Query("phone_number") // This can be phone number OR email
 	quizPackageID := c.Query("quiz_package_id")
 
-	if phoneNumber == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Phone number is required"})
+	if identifier == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Phone number or email is required"})
 		return
 	}
 
@@ -367,13 +373,13 @@ func (h *AuthHandler) CheckPhoneNumberForQuiz(c *gin.Context) {
 		return
 	}
 
-	// Find user by phone number
+	// Find user by phone number OR email (check both fields)
 	var user models.User
-	if err := database.DB.Where("phone_number = ?", phoneNumber).First(&user).Error; err != nil {
-		// Phone number not found
+	if err := database.DB.Where("phone_number = ? OR email = ?", identifier, identifier).First(&user).Error; err != nil {
+		// Neither phone number nor email found
 		c.JSON(http.StatusOK, gin.H{
 			"approved": false,
-			"message":  "This phone number is not registered. Please register first.",
+			"message":  "This phone number or email is not registered. Please register first.",
 		})
 		return
 	}
