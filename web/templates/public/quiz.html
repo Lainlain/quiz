@@ -16,8 +16,8 @@
     <meta property="og:site_name" content="Mitsuki JPY Language School">
     <meta property="og:title" content="📝 Quiz Exam - Test Your Japanese Skills">
     <meta property="og:description" content="Take your Japanese language proficiency quiz online. Test your skills and track your progress with our comprehensive examination system. ✅ Interactive Questions | ⏱️ Timed Exam | 📊 Instant Results">
-    <meta property="og:image" content="/static/logo.jpg">
-    <meta property="og:image:secure_url" content="/static/logo.jpg">
+    <meta property="og:image" content="">
+    <meta property="og:image:secure_url" content="">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="Mitsuki JPY Language School - Japanese Language Quiz">
@@ -29,7 +29,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="📝 Quiz Exam - Mitsuki JPY Language School">
     <meta name="twitter:description" content="Take your Japanese language proficiency quiz online. Test your skills and track your progress!">
-    <meta name="twitter:image" content="/static/logo.jpg">
+    <meta name="twitter:image" content="">
     <meta name="twitter:image:alt" content="Mitsuki JPY Language School Logo">
     
     <!-- WhatsApp specific (uses og: tags but can be enhanced) -->
@@ -50,13 +50,62 @@
     <link rel="icon" href="/static/logo.jpg" type="image/jpeg">
     <link rel="apple-touch-icon" href="/static/logo.jpg">
     
-    <!-- Dynamic URL Meta Tags Script -->
+    <!-- Dynamic URL and Image Meta Tags Script -->
     <script>
-        // Set dynamic URL for Open Graph tags
-        document.addEventListener('DOMContentLoaded', function() {
+        // Set dynamic URL and absolute image URLs for social media scrapers
+        (function() {
+            const baseUrl = window.location.origin;
             const currentUrl = window.location.href;
+            const imageUrl = baseUrl + '/static/logo.jpg';
+            
+            // Set OG URL
             document.querySelector('meta[property="og:url"]').setAttribute('content', currentUrl);
-        });
+            
+            // Set OG images with absolute URLs
+            document.querySelector('meta[property="og:image"]').setAttribute('content', imageUrl);
+            document.querySelector('meta[property="og:image:secure_url"]').setAttribute('content', imageUrl);
+            
+            // Set Twitter image with absolute URL
+            document.querySelector('meta[name="twitter:image"]').setAttribute('content', imageUrl);
+            
+            // Use dedicated quiz preview image
+            const quizImageUrl = baseUrl + '/static/quiz-preview.jpg';
+            document.querySelector('meta[property="og:image"]').setAttribute('content', quizImageUrl);
+            document.querySelector('meta[property="og:image:secure_url"]').setAttribute('content', quizImageUrl);
+            document.querySelector('meta[name="twitter:image"]').setAttribute('content', quizImageUrl);
+            
+            // Load quiz details and update meta tags with course and quiz names
+            const urlParams = new URLSearchParams(window.location.search);
+            const packageId = urlParams.get('package');
+            
+            if (packageId) {
+                Promise.all([
+                    fetch(`/api/student/quiz-packages/${packageId}`).then(r => r.json()),
+                    fetch(`/api/student/quiz-packages/${packageId}`).then(r => r.json()).then(pkg => 
+                        fetch(`/api/student/courses/${pkg.course_id}`).then(r => r.json())
+                    )
+                ]).then(([quizPackage, course]) => {
+                    const title = `📝 ${quizPackage.title} - ${course.title}`;
+                    const description = `Take the ${quizPackage.title} quiz for ${course.title} at Mitsuki JPY Language School. Test your Japanese language skills and track your progress!`;
+                    
+                    // Update page title
+                    document.title = `${quizPackage.title} - ${course.title} | Mitsuki JPY`;
+                    
+                    // Update OG tags
+                    document.querySelector('meta[property="og:title"]').setAttribute('content', title);
+                    document.querySelector('meta[property="og:description"]').setAttribute('content', description);
+                    
+                    // Update Twitter tags
+                    document.querySelector('meta[name="twitter:title"]').setAttribute('content', title);
+                    document.querySelector('meta[name="twitter:description"]').setAttribute('content', description);
+                    
+                    // Update meta description
+                    document.querySelector('meta[name="description"]').setAttribute('content', description);
+                }).catch(err => {
+                    console.log('Could not load quiz details for meta tags:', err);
+                });
+            }
+        })();
     </script>
     
     <!-- Tailwind CSS -->

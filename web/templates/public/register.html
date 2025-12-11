@@ -17,8 +17,8 @@
     <meta property="og:site_name" content="Mitsuki JPY Language School">
     <meta property="og:title" content="✍️ Register for Japanese Language Course - Mitsuki JPY">
     <meta property="og:description" content="🎌 Start your Japanese learning journey today! Join Mitsuki JPY Language School for comprehensive Japanese language courses. 👨‍🏫 Expert Instructors | 📚 Structured Curriculum | 🏆 Proven Results">
-    <meta property="og:image" content="/static/logo.jpg">
-    <meta property="og:image:secure_url" content="/static/logo.jpg">
+    <meta property="og:image" content="">
+    <meta property="og:image:secure_url" content="">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="Mitsuki JPY Language School - Japanese Course Registration">
@@ -30,7 +30,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="✍️ Register for Japanese Language Course - Mitsuki JPY">
     <meta name="twitter:description" content="Join Mitsuki JPY Language School and start your Japanese learning journey today!">
-    <meta name="twitter:image" content="/static/logo.jpg">
+    <meta name="twitter:image" content="">
     <meta name="twitter:image:alt" content="Mitsuki JPY Language School Logo">
     
     <!-- WhatsApp specific (uses og: tags but can be enhanced) -->
@@ -59,17 +59,65 @@
     <link rel="icon" href="/static/logo.jpg" type="image/jpeg">
     <link rel="apple-touch-icon" href="/static/logo.jpg">
     
-    <!-- Dynamic URL Meta Tags Script -->
+    <!-- Dynamic URL and Image Meta Tags Script -->
     <script>
-        // Set dynamic URL for Open Graph tags and canonical link
-        document.addEventListener('DOMContentLoaded', function() {
+        // Set dynamic URL and absolute image URLs for social media scrapers
+        (function() {
+            const baseUrl = window.location.origin;
             const currentUrl = window.location.href;
+            const imageUrl = baseUrl + '/static/logo.jpg';
+            
+            // Set OG URL
             document.querySelector('meta[property="og:url"]').setAttribute('content', currentUrl);
+            
+            // Set OG images with absolute URLs
+            document.querySelector('meta[property="og:image"]').setAttribute('content', imageUrl);
+            document.querySelector('meta[property="og:image:secure_url"]').setAttribute('content', imageUrl);
+            
+            // Set Twitter image with absolute URL
+            document.querySelector('meta[name="twitter:image"]').setAttribute('content', imageUrl);
+            
+            // Set canonical link
             const canonical = document.querySelector('link[rel="canonical"]');
             if (canonical) {
                 canonical.setAttribute('href', currentUrl);
             }
-        });
+            
+            // Use dedicated course preview image
+            const courseImageUrl = baseUrl + '/static/course-preview.jpg';
+            document.querySelector('meta[property="og:image"]').setAttribute('content', courseImageUrl);
+            document.querySelector('meta[property="og:image:secure_url"]').setAttribute('content', courseImageUrl);
+            document.querySelector('meta[name="twitter:image"]').setAttribute('content', courseImageUrl);
+            
+            // Load course details and update meta tags with course name
+            const courseId = window.location.pathname.split('/').pop();
+            
+            if (courseId) {
+                fetch(`/api/student/courses/${courseId}`)
+                    .then(r => r.json())
+                    .then(course => {
+                        const title = `✍️ Register for ${course.title} - Mitsuki JPY Language School`;
+                        const description = `Join ${course.title} at Mitsuki JPY Language School! Start your Japanese learning journey today with our comprehensive course. 👨‍🏫 Expert Instructors | 📚 Quality Education | 🎌 Cultural Immersion`;
+                        
+                        // Update page title
+                        document.title = `Register - ${course.title} | Mitsuki JPY`;
+                        
+                        // Update OG tags
+                        document.querySelector('meta[property="og:title"]').setAttribute('content', title);
+                        document.querySelector('meta[property="og:description"]').setAttribute('content', description);
+                        
+                        // Update Twitter tags
+                        document.querySelector('meta[name="twitter:title"]').setAttribute('content', title);
+                        document.querySelector('meta[name="twitter:description"]').setAttribute('content', description);
+                        
+                        // Update meta description
+                        document.querySelector('meta[name="description"]').setAttribute('content', description);
+                    })
+                    .catch(err => {
+                        console.log('Could not load course details for meta tags:', err);
+                    });
+            }
+        })();
     </script>
     
     <script src="https://cdn.tailwindcss.com"></script>
