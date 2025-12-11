@@ -37,6 +37,11 @@ function dashboard() {
         allStudents: [],
         totalStudentCount: 0,
         
+        // Search & Filter for students
+        studentSearchQuery: '',
+        filteredAllStudents: [],
+        filteredCourseEnrollments: [],
+        
         // Initialize
         async init() {
             // Check authentication
@@ -208,6 +213,9 @@ function dashboard() {
             // Load enrollments for this course
             const data = await this.apiCall(`/api/admin/enrollments/course/${course.id}`);
             this.courseEnrollments = data || [];
+            this.filteredCourseEnrollments = data || [];
+            // Reset search when switching courses
+            this.studentSearchQuery = '';
         },
         
         copyRegistrationLink(courseId) {
@@ -285,12 +293,63 @@ function dashboard() {
                 console.log('API response:', data);
                 
                 this.allStudents = data || [];
+                this.filteredAllStudents = data || [];
                 console.log('allStudents array after assignment:', this.allStudents);
                 console.log('allStudents length:', this.allStudents.length);
             } catch (error) {
                 console.error('Error in loadAllStudents:', error);
                 this.allStudents = [];
+                this.filteredAllStudents = [];
             }
+        },
+        
+        // Search function for all students
+        searchStudents() {
+            const query = this.studentSearchQuery.toLowerCase().trim();
+            
+            if (!query) {
+                this.filteredAllStudents = this.allStudents;
+                return;
+            }
+            
+            this.filteredAllStudents = this.allStudents.filter(student => {
+                return (
+                    (student.name || '').toLowerCase().includes(query) ||
+                    (student.email || '').toLowerCase().includes(query) ||
+                    (student.phone_number || '').toLowerCase().includes(query) ||
+                    (student.postal_code || '').toLowerCase().includes(query) ||
+                    (student.city || '').toLowerCase().includes(query) ||
+                    (student.course_name || '').toLowerCase().includes(query)
+                );
+            });
+        },
+        
+        // Search function for course enrollments
+        searchCourseEnrollments() {
+            const query = this.studentSearchQuery.toLowerCase().trim();
+            
+            if (!query) {
+                this.filteredCourseEnrollments = this.courseEnrollments;
+                return;
+            }
+            
+            this.filteredCourseEnrollments = this.courseEnrollments.filter(enrollment => {
+                return (
+                    (enrollment.name || '').toLowerCase().includes(query) ||
+                    (enrollment.email || '').toLowerCase().includes(query) ||
+                    (enrollment.phone_number || '').toLowerCase().includes(query) ||
+                    (enrollment.postal_code || '').toLowerCase().includes(query) ||
+                    (enrollment.city || '').toLowerCase().includes(query) ||
+                    (enrollment.address || '').toLowerCase().includes(query)
+                );
+            });
+        },
+        
+        // Clear search
+        clearStudentSearch() {
+            this.studentSearchQuery = '';
+            this.filteredAllStudents = this.allStudents;
+            this.filteredCourseEnrollments = this.courseEnrollments;
         },
         
         viewStudentDetails(student) {
@@ -493,6 +552,15 @@ function dashboard() {
             if (response.ok) {
                 await this.loadPackages();
             }
+        },
+        
+        // Alias functions for quiz package operations (for HTML compatibility)
+        async editQuizPackage(pkg) {
+            return this.editPackage(pkg);
+        },
+        
+        async deleteQuizPackage(pkg) {
+            return this.deletePackage(pkg.id);
         },
         
         // Question operations
